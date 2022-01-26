@@ -1,0 +1,16 @@
+{
+  "domain": "bemfa",
+  "name": "bemfa",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/larry-wong/bemfa",
+  "requirements": ["paho-mqtt==1.6.1"],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@larry-wong"
+  ],
+  "iot_class": "cloud_push"
+}
