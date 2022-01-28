@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "config_flow": true,
   "documentation": "https://github.com/larry-wong/bemfa",
+  "issue_tracker": "https://github.com/larry-wong/bemfa/issues",
   "requirements": ["paho-mqtt==1.6.1"],
   "ssdp": [],
   "zeroconf": [],
