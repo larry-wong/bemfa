@@ -3,11 +3,11 @@
 ## 功能
 将 Home Assistant 实体同步至巴法云，并使用小爱同学/天猫精灵/小度音箱控制。
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
 ## 使用
   1. 注册巴法云账号，并获取 uid
-  2. clone 此项目, 将 custom\_components/bemfa 目录拷贝至 Home Assistant 配置目录的 custom\_components 目录下。
+  2. 在HACS中搜索 bemfa 安装，或者 clone 此项目, 将 custom\_components/bemfa 目录拷贝至 Home Assistant 配置目录的 custom\_components 目录下。
   3. 重启 Home Assistant 服务。
   4. 在 Home Assistant 的集成页面，搜索 "bemfa" 并添加。
   5. 根据提示输入巴法云的 uid, 并选择需要同步至巴法云的实体。

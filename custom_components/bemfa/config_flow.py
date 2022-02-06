@@ -12,7 +12,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
-from .const import CONF_INCLUDE_ENTITIES, CONF_UID, DOMAIN
+from .const import CONF_INCLUDE_ENTITIES, CONF_UID, DOMAIN, TOPIC_PING
 from .entities_config import ENTITIES_CONFIG, FILTER
 from .helper import generate_topic
 from .http import BemfaHttp
@@ -121,7 +121,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 last_step=True,
             )
 
-        #  start to sync selected entities to Bemfa Service
+        # create topic for heartbeat pacakges
+        if TOPIC_PING not in self._all_topics:
+            await self._http.async_add_topic(TOPIC_PING, "ping")
+        else:
+            # This topic does not matter to entities, remove it for following syncs
+            del self._all_topics[TOPIC_PING]
+
+        # start to sync selected entities to Bemfa Service
         for entity_id in user_input[CONF_INCLUDE_ENTITIES]:
             state = self.hass.states.get(entity_id)
             if state is None:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any
 
 import paho.mqtt.client as mqtt
@@ -13,7 +14,15 @@ from homeassistant.const import (
 )
 from homeassistant.core import CoreState, HomeAssistant
 
-from .const import MQTT_HOST, MQTT_KEEPALIVE, MQTT_PORT, TOPIC_PUBLISH
+from .const import (
+    INTERVAL_NO_PING,
+    INTERVAL_PING,
+    MQTT_HOST,
+    MQTT_KEEPALIVE,
+    MQTT_PORT,
+    TOPIC_PING,
+    TOPIC_PUBLISH,
+)
 from .helper import generate_msg, generate_msg_list, generate_topic, resolve_msg
 
 _LOGGING = logging.getLogger(__name__)
@@ -23,8 +32,10 @@ class BemfaMqtt:
     """Set up mqtt connections to Bemfa Service, subscribe topcs and publish messages."""
 
     _topic_to_entity_id: dict[str, str] = {}
-    _remove_listener: Any
+    _remove_listener: Any = None
     _entity_ids: list[str]
+    _publish_timer: Any = None
+    _reconnect_timer: Any = None
 
     def __init__(self, hass: HomeAssistant, uid: str, entity_ids: list[str]) -> None:
         """Initialize."""
@@ -32,19 +43,19 @@ class BemfaMqtt:
         self._uid = uid
         self._entity_ids = entity_ids
 
-        # Init MQTT connection
-        self._mqttc = mqtt.Client(uid, mqtt.MQTTv311)
-        self._mqttc.connect(MQTT_HOST, port=MQTT_PORT, keepalive=MQTT_KEEPALIVE)
-        self._mqttc.on_message = self._mqtt_on_message
-        self._mqttc.loop_start()
-
         if self._hass.state == CoreState.running:
-            self._connect(None)
+            self._connect()
         else:
             # for situations when hass restarts
             self._hass.bus.listen_once(EVENT_HOMEASSISTANT_STARTED, self._connect)
 
-    def _connect(self, _event) -> None:
+    def _connect(self, _event=None) -> None:
+        # Init MQTT connection
+        self._mqttc = mqtt.Client(self._uid, mqtt.MQTTv311)
+        self._mqttc.connect(MQTT_HOST, port=MQTT_PORT, keepalive=MQTT_KEEPALIVE)
+        self._mqttc.on_message = self._mqtt_on_message
+        self._mqttc.loop_start()
+
         for entity_id in self._entity_ids:
             state = self._hass.states.get(entity_id)
             if state is None:
@@ -62,8 +73,37 @@ class BemfaMqtt:
             EVENT_STATE_CHANGED, self._state_listener
         )
 
+        # Listen for heartbeat packages
+        self._mqttc.subscribe(TOPIC_PING, 2)
+        self._reset_reconnect_timer()
+
+        # Send heartbeat packages to check the connection
+        self._publish_timer = threading.Timer(INTERVAL_PING, self._ping)
+        self._publish_timer.start()
+
+    def _reset_reconnect_timer(self):
+        if self._reconnect_timer is not None:
+            self._reconnect_timer.cancel()
+        self._reconnect_timer = threading.Timer(INTERVAL_NO_PING, self._reconnect)
+        self._reconnect_timer.start()
+
+    def _ping(self):
+        self._mqttc.publish(TOPIC_PING, "ping")
+        self._publish_timer = threading.Timer(INTERVAL_PING, self._ping)
+        self._publish_timer.start()
+
+    def _reconnect(self):
+        self.disconnect()
+        self._connect()
+
     def disconnect(self) -> None:
         """Disconnect from Bamfa service."""
+
+        # Remove timers
+        if self._publish_timer is not None:
+            self._publish_timer.cancel()
+        if self._reconnect_timer is not None:
+            self._reconnect_timer.cancel()
 
         # Unlisten for state changes
         if self._remove_listener is not None:
@@ -87,6 +127,10 @@ class BemfaMqtt:
         )
 
     def _mqtt_on_message(self, _mqtt_client, _userdata, message) -> None:
+        if message.topic == TOPIC_PING:
+            self._reset_reconnect_timer()
+            return
+
         entity_id = self._topic_to_entity_id[message.topic]
         state = self._hass.states.get(entity_id)
         if state is None:
