@@ -121,7 +121,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 last_step=True,
             )
 
-        # create topic for heartbeat pacakges
+        # create topic for heartbeat packages
         if TOPIC_PING not in self._all_topics:
             await self._http.async_add_topic(TOPIC_PING, "ping")
         else:

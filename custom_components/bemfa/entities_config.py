@@ -2,6 +2,7 @@
 
 from typing import Any, Final
 
+from homeassistant.components.automation.const import DOMAIN as AUTOMATION_DOMAIN
 from homeassistant.components.binary_sensor import DOMAIN as BINAEY_SENSOR_DOMAIN
 from homeassistant.components.climate.const import (
     ATTR_HVAC_MODE,
@@ -28,11 +29,13 @@ from homeassistant.components.fan import (
     SERVICE_OSCILLATE,
     SERVICE_SET_PERCENTAGE,
 )
+from homeassistant.components.input_boolean import DOMAIN as INPUT_BOOLEAN_DOMAIN
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
     DOMAIN as LIGHT_DOMAIN,
 )
+from homeassistant.components.script.const import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.vacuum import (
@@ -86,6 +89,22 @@ SUPPORTED_HVAC_MODES = [
     HVAC_MODE_DRY,
 ]
 
+SWITCH_CONFIG: Any = {
+    SUFFIX: TOPIC_SUFFIX_SWITCH,
+    GENERATE: [lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF],
+    RESOLVE: [
+        (
+            # split bemfa msg by "#", then take a sub list
+            0,  # from this index
+            1,  # to this index
+            lambda msg, attributes: (  # and pass to this fun as param "msg"
+                SERVICE_TURN_ON if msg[0] == MSG_ON else SERVICE_TURN_OFF,
+                None,
+            ),
+        )
+    ],
+}
+
 ENTITIES_CONFIG: Any = {
     SENSOR_DOMAIN: {
         SUFFIX: TOPIC_SUFFIX_SENSOR,
@@ -123,21 +142,7 @@ ENTITIES_CONFIG: Any = {
             lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF,
         ],
     },
-    SWITCH_DOMAIN: {
-        SUFFIX: TOPIC_SUFFIX_SWITCH,
-        GENERATE: [lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF],
-        RESOLVE: [
-            (
-                # split bemfa msg by "#", then take a sub list
-                0,  # from this index
-                1,  # to this index
-                lambda msg, attributes: (  # and pass to this fun as param "msg"
-                    SERVICE_TURN_ON if msg[0] == MSG_ON else SERVICE_TURN_OFF,
-                    None,
-                ),
-            )
-        ],
-    },
+    SWITCH_DOMAIN: SWITCH_CONFIG,
     LIGHT_DOMAIN: {
         SUFFIX: TOPIC_SUFFIX_LIGHT,
         GENERATE: [
@@ -267,7 +272,8 @@ ENTITIES_CONFIG: Any = {
             ),
         ],
     },
-    VACUUM_DOMAIN: {  # fallback to switch
+    # following domains fallback to switch
+    VACUUM_DOMAIN: {
         SUFFIX: TOPIC_SUFFIX_SWITCH,
         GENERATE: [
             lambda state, attributes: MSG_ON
@@ -296,4 +302,28 @@ ENTITIES_CONFIG: Any = {
             )
         ],
     },
+    SCRIPT_DOMAIN: SWITCH_CONFIG,
+    AUTOMATION_DOMAIN: SWITCH_CONFIG,
+    INPUT_BOOLEAN_DOMAIN: SWITCH_CONFIG,
 }
+
+"""
+UNSUPPORTED_DOMAINS = [
+    "alarm_control_panel",
+    "button",
+    CAMERA_DOMAIN,
+    "demo",
+    "device_tracker",
+    "humidifier",
+    "input_button",
+    "input_select",
+    "lock",
+    MEDIA_PLAYER_DOMAIN,
+    "person",
+    REMOTE_DOMAIN,
+    "scene",
+    "select",
+    "switch",
+    "water_heater",
+]
+"""

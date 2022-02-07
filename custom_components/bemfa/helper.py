@@ -49,7 +49,7 @@ def generate_msg(domain: str, state: str, attributes: Mapping[str, Any]) -> str:
 
 def resolve_msg(
     domain: str, msg: str, attributes: Mapping[str, Any]
-) -> tuple[list[str], list[tuple[int, int, str, Mapping[str, Any]]]]:
+) -> tuple[list[str], list[tuple[int, int, str, Mapping[str, Any] | None]]]:
     """Resolve bemfa msg to hass service calls."""
     msg_list: list[Any] = msg.split(MSG_SEPARATOR)
     if msg_list[0] == MSG_OFF:
@@ -60,7 +60,7 @@ def resolve_msg(
     else:
         return ([], [])
     resolvers = ENTITIES_CONFIG[domain][RESOLVE]
-    actions: list[tuple[int, int, str, Mapping[str, Any]]] = []
+    actions: list[tuple[int, int, str, Mapping[str, Any] | None]] = []
     for resolver in resolvers:
         if len(msg_list) > resolver[0]:
             action = resolver[2](msg_list[resolver[0] : resolver[1]], attributes)
