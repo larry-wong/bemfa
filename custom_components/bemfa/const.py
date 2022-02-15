@@ -5,7 +5,7 @@ from typing import Final
 DOMAIN: Final = "bemfa"
 
 # #### Config ####
-CONF_UID = "uid"
+CONF_UID: Final = "uid"
 CONF_INCLUDE_ENTITIES: Final = "include_entities"
 
 # #### MQTT ####

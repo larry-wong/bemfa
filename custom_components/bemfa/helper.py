@@ -27,8 +27,9 @@ def generate_msg_list(
     """Generate msg_list from hass state."""
     generate_funs = ENTITIES_CONFIG[domain][GENERATE]
 
-    # if first one is off, the following others is not necessary
     msg_list = [generate_funs[0](state, attributes)]
+
+    # if first one is off, the following others is not necessary
     if msg_list[0] != MSG_OFF:
         msg_list += list(
             map(
@@ -49,7 +50,18 @@ def generate_msg(domain: str, state: str, attributes: Mapping[str, Any]) -> str:
 
 def resolve_msg(
     domain: str, msg: str, attributes: Mapping[str, Any]
-) -> tuple[list[str], list[tuple[int, int, str, Mapping[str, Any] | None]]]:
+) -> tuple[
+    list[str],  # msg received split by MSG_SEPARATOR
+    list[
+        tuple[
+            int,  # start index defined in ENTITIES_CONFIG
+            int,  # end index defined in ENTITIES_CONFIG
+            str,  # domain of the service to call
+            str,  # service to call
+            Mapping[str, Any] | None,  # data passed to the service
+        ]
+    ],
+]:
     """Resolve bemfa msg to hass service calls."""
     msg_list: list[Any] = msg.split(MSG_SEPARATOR)
     if msg_list[0] == MSG_OFF:
@@ -60,7 +72,7 @@ def resolve_msg(
     else:
         return ([], [])
     resolvers = ENTITIES_CONFIG[domain][RESOLVE]
-    actions: list[tuple[int, int, str, Mapping[str, Any] | None]] = []
+    actions: list[tuple[int, int, str, str, Mapping[str, Any] | None]] = []
     for resolver in resolvers:
         if len(msg_list) > resolver[0]:
             action = resolver[2](msg_list[resolver[0] : resolver[1]], attributes)

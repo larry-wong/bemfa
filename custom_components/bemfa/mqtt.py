@@ -146,9 +146,9 @@ class BemfaMqtt:
             end_index = min(action[1], len(msg_list), len(my_msg_list))
             if msg_list[start_index:end_index] != my_msg_list[start_index:end_index]:
                 data = {ATTR_ENTITY_ID: entity_id}
-                if action[3] is not None:
-                    data.update(action[3])
+                if action[4] is not None:
+                    data.update(action[4])
                 self._hass.services.call(
-                    state.domain, service=action[2], service_data=data
+                    domain=action[2], service=action[3], service_data=data
                 )
                 break  # call only one service on each msg received

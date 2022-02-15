@@ -1,9 +1,12 @@
 """How bemfa represents HA entities."""
+from __future__ import annotations
 
 from typing import Any, Final
 
 from homeassistant.components.automation.const import DOMAIN as AUTOMATION_DOMAIN
 from homeassistant.components.binary_sensor import DOMAIN as BINAEY_SENSOR_DOMAIN
+from homeassistant.components.camera import STATE_IDLE
+from homeassistant.components.camera.const import DOMAIN as CAMERA_DOMAIN
 from homeassistant.components.climate.const import (
     ATTR_HVAC_MODE,
     DOMAIN as CLIMATE_DOMAIN,
@@ -29,12 +32,23 @@ from homeassistant.components.fan import (
     SERVICE_OSCILLATE,
     SERVICE_SET_PERCENTAGE,
 )
+from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
+from homeassistant.components.humidifier.const import DOMAIN as HUMIDIFIER_DOMAIN
 from homeassistant.components.input_boolean import DOMAIN as INPUT_BOOLEAN_DOMAIN
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
+    ATTR_COLOR_TEMP,
+    ATTR_MAX_MIREDS,
+    ATTR_MIN_MIREDS,
+    ATTR_RGB_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
+    COLOR_MODE_COLOR_TEMP,
     DOMAIN as LIGHT_DOMAIN,
 )
+from homeassistant.components.lock import DOMAIN as LOCK_DOMAIN
+from homeassistant.components.media_player.const import DOMAIN as MEDIA_PLAYER_DOMAIN
+from homeassistant.components.remote import DOMAIN as REMOTE_DOMAIN
 from homeassistant.components.script.const import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -57,13 +71,18 @@ from homeassistant.const import (
     DEVICE_CLASS_PM25,
     DEVICE_CLASS_TEMPERATURE,
     SERVICE_CLOSE_COVER,
+    SERVICE_LOCK,
     SERVICE_OPEN_COVER,
     SERVICE_SET_COVER_POSITION,
     SERVICE_STOP_COVER,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
+    SERVICE_UNLOCK,
+    STATE_LOCKED,
     STATE_ON,
+    STATE_PLAYING,
 )
+from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN
 
 from .const import (
     MSG_OFF,
@@ -89,26 +108,41 @@ SUPPORTED_HVAC_MODES = [
     HVAC_MODE_DRY,
 ]
 
-SWITCH_CONFIG: Any = {
-    SUFFIX: TOPIC_SUFFIX_SWITCH,
-    GENERATE: [lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF],
-    RESOLVE: [
-        (
-            # split bemfa msg by "#", then take a sub list
-            0,  # from this index
-            1,  # to this index
-            lambda msg, attributes: (  # and pass to this fun as param "msg"
-                SERVICE_TURN_ON if msg[0] == MSG_ON else SERVICE_TURN_OFF,
-                None,
-            ),
-        )
-    ],
-}
 
-ENTITIES_CONFIG: Any = {
+def gen_switch_config(
+    service_domain=SWITCH_DOMAIN,
+    generate=lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF,
+    service_on=SERVICE_TURN_ON,
+    service_off=SERVICE_TURN_OFF,
+) -> Any:
+    """Many domains which Bemfa do not support need to be converted to switch. This function makes things easier."""
+    return {
+        SUFFIX: TOPIC_SUFFIX_SWITCH,
+        GENERATE: [generate],
+        RESOLVE: [
+            (
+                # split bemfa msg by "#", then take a sub list
+                0,  # from this index
+                1,  # to this index
+                lambda msg, attributes: (  # and pass to this fun as param "msg"
+                    service_domain,
+                    service_on if msg[0] == MSG_ON else service_off,
+                    None,
+                ),
+            )
+        ],
+    }
+
+
+def has_key(data: Any, key: str) -> bool:
+    """Whether data has specific valid key."""
+    return key in data and data[key] is not None
+
+
+ENTITIES_CONFIG: dict[str, Any] = {
     SENSOR_DOMAIN: {
         SUFFIX: TOPIC_SUFFIX_SENSOR,
-        FILTER: lambda attributes: ATTR_DEVICE_CLASS in attributes
+        FILTER: lambda attributes: has_key(attributes, ATTR_DEVICE_CLASS)
         and attributes[ATTR_DEVICE_CLASS]
         in [
             DEVICE_CLASS_TEMPERATURE,
@@ -142,22 +176,51 @@ ENTITIES_CONFIG: Any = {
             lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF,
         ],
     },
-    SWITCH_DOMAIN: SWITCH_CONFIG,
+    SWITCH_DOMAIN: gen_switch_config(),
     LIGHT_DOMAIN: {
         SUFFIX: TOPIC_SUFFIX_LIGHT,
         GENERATE: [
             lambda state, attributes: MSG_ON if state == STATE_ON else MSG_OFF,
             lambda state, attributes: round(attributes[ATTR_BRIGHTNESS] / 2.55)
-            if ATTR_BRIGHTNESS in attributes
+            if has_key(attributes, ATTR_BRIGHTNESS)
+            else "",
+            lambda state, attributes: 1000000 // attributes[ATTR_COLOR_TEMP]
+            if has_key(attributes, ATTR_COLOR_TEMP)
+            else attributes[ATTR_RGB_COLOR][0] * 256 * 256
+            + attributes[ATTR_RGB_COLOR][1] * 256
+            + attributes[ATTR_RGB_COLOR][2]
+            if has_key(attributes, ATTR_RGB_COLOR)
             else "",
         ],
         RESOLVE: [
             (
                 0,
-                2,
+                3,
                 lambda msg, attributes: (
+                    LIGHT_DOMAIN,
                     SERVICE_TURN_ON if msg[0] == MSG_ON else SERVICE_TURN_OFF,
-                    {ATTR_BRIGHTNESS_PCT: msg[1]} if len(msg) > 1 else None,
+                    {
+                        ATTR_BRIGHTNESS_PCT: msg[1],
+                        ATTR_COLOR_TEMP: min(
+                            max(1000000 // msg[2], attributes[ATTR_MIN_MIREDS]),
+                            attributes[ATTR_MAX_MIREDS],
+                        ),
+                    }
+                    if len(msg) > 2
+                    and has_key(attributes, ATTR_SUPPORTED_COLOR_MODES)
+                    and COLOR_MODE_COLOR_TEMP in attributes[ATTR_SUPPORTED_COLOR_MODES]
+                    else {
+                        ATTR_BRIGHTNESS_PCT: msg[1],
+                        ATTR_RGB_COLOR: [
+                            msg[2] // 256 // 256,
+                            msg[2] // 256 % 256,
+                            msg[2] % 256,
+                        ],
+                    }
+                    if len(msg) > 2
+                    else {ATTR_BRIGHTNESS_PCT: msg[1]}
+                    if len(msg) > 1
+                    else None,
                 ),
             )
         ],
@@ -166,13 +229,13 @@ ENTITIES_CONFIG: Any = {
         SUFFIX: TOPIC_SUFFIX_COVER,
         GENERATE: [
             lambda state, attributes: MSG_OFF
-            if ATTR_CURRENT_POSITION in attributes
+            if has_key(attributes, ATTR_CURRENT_POSITION)
             and attributes[ATTR_CURRENT_POSITION] == 0
-            or ATTR_CURRENT_POSITION not in attributes
+            or not has_key(attributes, ATTR_CURRENT_POSITION)
             and state == "closed"
             else MSG_ON,
             lambda state, attributes: attributes[ATTR_CURRENT_POSITION]
-            if ATTR_CURRENT_POSITION in attributes
+            if has_key(attributes, ATTR_CURRENT_POSITION)
             else "",
         ],
         RESOLVE: [
@@ -180,11 +243,13 @@ ENTITIES_CONFIG: Any = {
                 0,
                 2,
                 lambda msg, attributes: (
+                    COVER_DOMAIN,
                     SERVICE_SET_COVER_POSITION,
                     {ATTR_POSITION: msg[1]},
                 )
                 if len(msg) > 1
                 else (
+                    COVER_DOMAIN,
                     SERVICE_OPEN_COVER
                     if msg[0] == MSG_ON
                     else SERVICE_CLOSE_COVER
@@ -202,12 +267,13 @@ ENTITIES_CONFIG: Any = {
             lambda state, attributes: min(
                 round(attributes[ATTR_PERCENTAGE] / attributes[ATTR_PERCENTAGE_STEP]), 4
             )
-            if ATTR_PERCENTAGE in attributes and ATTR_PERCENTAGE_STEP in attributes
+            if has_key(attributes, ATTR_PERCENTAGE)
+            and has_key(attributes, ATTR_PERCENTAGE_STEP)
             else "",
             lambda state, attributes: 1
-            if ATTR_OSCILLATING in attributes and attributes[ATTR_OSCILLATING]
+            if has_key(attributes, ATTR_OSCILLATING) and attributes[ATTR_OSCILLATING]
             else 0
-            if ATTR_OSCILLATING in attributes
+            if has_key(attributes, ATTR_OSCILLATING)
             else "",
         ],
         RESOLVE: [
@@ -215,6 +281,7 @@ ENTITIES_CONFIG: Any = {
                 0,
                 2,
                 lambda msg, attributes: (
+                    FAN_DOMAIN,
                     SERVICE_SET_PERCENTAGE,
                     {
                         ATTR_PERCENTAGE: min(
@@ -222,8 +289,9 @@ ENTITIES_CONFIG: Any = {
                         )
                     },
                 )
-                if len(msg) > 1 and ATTR_PERCENTAGE_STEP in attributes
+                if len(msg) > 1 and has_key(attributes, ATTR_PERCENTAGE_STEP)
                 else (
+                    FAN_DOMAIN,
                     SERVICE_TURN_ON if msg[0] == MSG_ON else SERVICE_TURN_OFF,
                     None,
                 ),
@@ -232,6 +300,7 @@ ENTITIES_CONFIG: Any = {
                 2,
                 3,
                 lambda msg, attributes: (
+                    FAN_DOMAIN,
                     SERVICE_OSCILLATE,
                     {ATTR_OSCILLATING: msg[0] == 1},
                 ),
@@ -246,7 +315,7 @@ ENTITIES_CONFIG: Any = {
             if state in SUPPORTED_HVAC_MODES
             else "",
             lambda state, attributes: round(attributes[ATTR_TEMPERATURE])
-            if ATTR_TEMPERATURE in attributes
+            if has_key(attributes, ATTR_TEMPERATURE)
             else "",
         ],
         RESOLVE: [
@@ -254,18 +323,20 @@ ENTITIES_CONFIG: Any = {
                 0,
                 2,
                 lambda msg, attributes: (
+                    CLIMATE_DOMAIN,
                     SERVICE_SET_HVAC_MODE,
                     {ATTR_HVAC_MODE: SUPPORTED_HVAC_MODES[msg[1] - 1]},
                 )
                 if len(msg) > 1 and msg[1] >= 1 and msg[1] <= 5
-                else (SERVICE_TURN_ON, None)
+                else (CLIMATE_DOMAIN, SERVICE_TURN_ON, None)
                 if msg[0] == MSG_ON and len(msg) == 1
-                else (SERVICE_TURN_OFF, None),
+                else (CLIMATE_DOMAIN, SERVICE_TURN_OFF, None),
             ),
             (
                 2,
                 3,
                 lambda msg, attributes: (
+                    CLIMATE_DOMAIN,
                     SERVICE_SET_TEMPERATURE,
                     {ATTR_TEMPERATURE: msg[0]},
                 ),
@@ -285,6 +356,7 @@ ENTITIES_CONFIG: Any = {
                 0,
                 1,
                 lambda msg, attributes: (
+                    VACUUM_DOMAIN,
                     SERVICE_START
                     if msg[0] == MSG_ON
                     and attributes[ATTR_SUPPORTED_FEATURES] & SUPPORT_START
@@ -302,28 +374,42 @@ ENTITIES_CONFIG: Any = {
             )
         ],
     },
-    SCRIPT_DOMAIN: SWITCH_CONFIG,
-    AUTOMATION_DOMAIN: SWITCH_CONFIG,
-    INPUT_BOOLEAN_DOMAIN: SWITCH_CONFIG,
+    SCRIPT_DOMAIN: gen_switch_config(SCRIPT_DOMAIN),
+    AUTOMATION_DOMAIN: gen_switch_config(AUTOMATION_DOMAIN),
+    INPUT_BOOLEAN_DOMAIN: gen_switch_config(INPUT_BOOLEAN_DOMAIN),
+    GROUP_DOMAIN: gen_switch_config(
+        HOMEASSISTANT_DOMAIN  # note: service domain for GROUP is homeassistant
+    ),
+    CAMERA_DOMAIN: gen_switch_config(
+        service_domain=CAMERA_DOMAIN,
+        generate=lambda state, attributes: MSG_OFF if state == STATE_IDLE else MSG_ON,
+    ),
+    HUMIDIFIER_DOMAIN: gen_switch_config(HUMIDIFIER_DOMAIN),
+    MEDIA_PLAYER_DOMAIN: gen_switch_config(
+        service_domain=MEDIA_PLAYER_DOMAIN,
+        generate=lambda state, attributes: MSG_ON
+        if state == STATE_PLAYING
+        else MSG_OFF,
+    ),
+    LOCK_DOMAIN: gen_switch_config(
+        service_domain=LOCK_DOMAIN,
+        generate=lambda state, attributes: MSG_OFF if state == STATE_LOCKED else MSG_ON,
+        service_on=SERVICE_UNLOCK,
+        service_off=SERVICE_LOCK,
+    ),
+    REMOTE_DOMAIN: gen_switch_config(REMOTE_DOMAIN),
 }
 
 """
 UNSUPPORTED_DOMAINS = [
     "alarm_control_panel",
     "button",
-    CAMERA_DOMAIN,
     "demo",
     "device_tracker",
-    "humidifier",
     "input_button",
     "input_select",
-    "lock",
-    MEDIA_PLAYER_DOMAIN,
     "person",
-    REMOTE_DOMAIN,
     "scene",
     "select",
-    "switch",
-    "water_heater",
 ]
 """
