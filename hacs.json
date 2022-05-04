@@ -1,5 +1,6 @@
 {
     "name": "bemfa",
     "render_readme": true,
-    "country": "CN"
+    "country": "CN",
+    "homeassistant": "2021.12.10"
 }

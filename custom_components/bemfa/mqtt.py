@@ -50,6 +50,9 @@ class BemfaMqtt:
             self._hass.bus.listen_once(EVENT_HOMEASSISTANT_STARTED, self._connect)
 
     def _connect(self, _event=None) -> None:
+        # Set reconnect timer first in case we failed to make mqtt connection
+        self._reset_reconnect_timer()
+
         # Init MQTT connection
         self._mqttc = mqtt.Client(self._uid, mqtt.MQTTv311)
         self._mqttc.connect(MQTT_HOST, port=MQTT_PORT, keepalive=MQTT_KEEPALIVE)
@@ -75,7 +78,6 @@ class BemfaMqtt:
 
         # Listen for heartbeat packages
         self._mqttc.subscribe(TOPIC_PING, 2)
-        self._reset_reconnect_timer()
 
         # Send heartbeat packages to check the connection
         self._publish_timer = threading.Timer(INTERVAL_PING, self._ping)

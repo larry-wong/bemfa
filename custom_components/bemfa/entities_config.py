@@ -49,8 +49,9 @@ from homeassistant.components.light import (
 from homeassistant.components.lock import DOMAIN as LOCK_DOMAIN
 from homeassistant.components.media_player.const import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.components.remote import DOMAIN as REMOTE_DOMAIN
+from homeassistant.components.scene import DOMAIN as SCENE_DOMAIN
 from homeassistant.components.script.const import DOMAIN as SCRIPT_DOMAIN
-from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDeviceClass
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.vacuum import (
     DOMAIN as VACUUM_DOMAIN,
@@ -66,10 +67,6 @@ from homeassistant.const import (
     ATTR_DEVICE_CLASS,
     ATTR_SUPPORTED_FEATURES,
     ATTR_TEMPERATURE,
-    DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_ILLUMINANCE,
-    DEVICE_CLASS_PM25,
-    DEVICE_CLASS_TEMPERATURE,
     SERVICE_CLOSE_COVER,
     SERVICE_LOCK,
     SERVICE_OPEN_COVER,
@@ -145,25 +142,25 @@ ENTITIES_CONFIG: dict[str, Any] = {
         FILTER: lambda attributes: has_key(attributes, ATTR_DEVICE_CLASS)
         and attributes[ATTR_DEVICE_CLASS]
         in [
-            DEVICE_CLASS_TEMPERATURE,
-            DEVICE_CLASS_HUMIDITY,
-            DEVICE_CLASS_ILLUMINANCE,
-            DEVICE_CLASS_PM25,
+            SensorDeviceClass.TEMPERATURE,
+            SensorDeviceClass.HUMIDITY,
+            SensorDeviceClass.ILLUMINANCE,
+            SensorDeviceClass.PM25,
         ],
         GENERATE: [
             lambda state, attributes: "",  # placeholder
             lambda state, attributes: state
-            if attributes[ATTR_DEVICE_CLASS] == DEVICE_CLASS_TEMPERATURE
+            if attributes[ATTR_DEVICE_CLASS] == SensorDeviceClass.TEMPERATURE
             else "",
             lambda state, attributes: state
-            if attributes[ATTR_DEVICE_CLASS] == DEVICE_CLASS_HUMIDITY
+            if attributes[ATTR_DEVICE_CLASS] == SensorDeviceClass.HUMIDITY
             else "",
             lambda state, attributes: "",
             lambda state, attributes: state
-            if attributes[ATTR_DEVICE_CLASS] == DEVICE_CLASS_ILLUMINANCE
+            if attributes[ATTR_DEVICE_CLASS] == SensorDeviceClass.ILLUMINANCE
             else "",
             lambda state, attributes: state
-            if attributes[ATTR_DEVICE_CLASS] == DEVICE_CLASS_PM25
+            if attributes[ATTR_DEVICE_CLASS] == SensorDeviceClass.PM25
             else "",
         ],
     },
@@ -377,6 +374,10 @@ ENTITIES_CONFIG: dict[str, Any] = {
     SCRIPT_DOMAIN: gen_switch_config(SCRIPT_DOMAIN),
     AUTOMATION_DOMAIN: gen_switch_config(AUTOMATION_DOMAIN),
     INPUT_BOOLEAN_DOMAIN: gen_switch_config(INPUT_BOOLEAN_DOMAIN),
+    SCENE_DOMAIN: gen_switch_config(
+        service_domain=SCENE_DOMAIN,
+        generate=lambda state, attributes: MSG_OFF,
+    ),
     GROUP_DOMAIN: gen_switch_config(
         HOMEASSISTANT_DOMAIN  # note: service domain for GROUP is homeassistant
     ),
@@ -409,7 +410,6 @@ UNSUPPORTED_DOMAINS = [
     "input_button",
     "input_select",
     "person",
-    "scene",
     "select",
 ]
 """
