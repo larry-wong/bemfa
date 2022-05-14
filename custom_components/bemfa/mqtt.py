@@ -116,7 +116,10 @@ class BemfaMqtt:
         self._mqttc.disconnect()
 
     def _state_listener(self, event):
-        entity_id = event.data.get("new_state").entity_id
+        new_state = event.data.get("new_state")
+        if new_state is None:
+            return
+        entity_id = new_state.entity_id
         if entity_id not in self._topic_to_entity_id.values():
             return
         topic = (list(self._topic_to_entity_id.keys()))[
