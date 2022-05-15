@@ -1,4 +1,4 @@
-"""Support for bemfa ervice."""
+"""Support for bemfa service."""
 
 from __future__ import annotations
 
