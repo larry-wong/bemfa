@@ -3,19 +3,14 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from homeassistant.components.automation.const import DOMAIN as AUTOMATION_DOMAIN
+from homeassistant.components.automation import DOMAIN as AUTOMATION_DOMAIN
 from homeassistant.components.binary_sensor import DOMAIN as BINAEY_SENSOR_DOMAIN
 from homeassistant.components.camera import STATE_IDLE
-from homeassistant.components.camera.const import DOMAIN as CAMERA_DOMAIN
-from homeassistant.components.climate.const import (
+from homeassistant.components.camera import DOMAIN as CAMERA_DOMAIN
+from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
     DOMAIN as CLIMATE_DOMAIN,
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_DRY,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_OFF,
+    HVACMode,
     SERVICE_SET_HVAC_MODE,
     SERVICE_SET_TEMPERATURE,
 )
@@ -33,7 +28,7 @@ from homeassistant.components.fan import (
     SERVICE_SET_PERCENTAGE,
 )
 from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
-from homeassistant.components.humidifier.const import DOMAIN as HUMIDIFIER_DOMAIN
+from homeassistant.components.humidifier import DOMAIN as HUMIDIFIER_DOMAIN
 from homeassistant.components.input_boolean import DOMAIN as INPUT_BOOLEAN_DOMAIN
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -43,14 +38,14 @@ from homeassistant.components.light import (
     ATTR_MIN_MIREDS,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
-    COLOR_MODE_COLOR_TEMP,
+    ColorMode,
     DOMAIN as LIGHT_DOMAIN,
 )
 from homeassistant.components.lock import DOMAIN as LOCK_DOMAIN
-from homeassistant.components.media_player.const import DOMAIN as MEDIA_PLAYER_DOMAIN
+from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.components.remote import DOMAIN as REMOTE_DOMAIN
 from homeassistant.components.scene import DOMAIN as SCENE_DOMAIN
-from homeassistant.components.script.const import DOMAIN as SCRIPT_DOMAIN
+from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDeviceClass
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.components.vacuum import (
@@ -59,9 +54,7 @@ from homeassistant.components.vacuum import (
     SERVICE_START,
     SERVICE_STOP,
     STATE_CLEANING,
-    SUPPORT_RETURN_HOME,
-    SUPPORT_START,
-    SUPPORT_STOP,
+    VacuumEntityFeature,
 )
 from homeassistant.const import (
     ATTR_DEVICE_CLASS,
@@ -98,11 +91,11 @@ GENERATE: Final = "generate"
 RESOLVE: Final = "resolve"
 
 SUPPORTED_HVAC_MODES = [
-    HVAC_MODE_AUTO,
-    HVAC_MODE_COOL,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_FAN_ONLY,
-    HVAC_MODE_DRY,
+    HVACMode.AUTO,
+    HVACMode.COOL,
+    HVACMode.HEAT,
+    HVACMode.FAN_ONLY,
+    HVACMode.DRY,
 ]
 
 
@@ -205,7 +198,7 @@ ENTITIES_CONFIG: dict[str, Any] = {
                     }
                     if len(msg) > 2
                     and has_key(attributes, ATTR_SUPPORTED_COLOR_MODES)
-                    and COLOR_MODE_COLOR_TEMP in attributes[ATTR_SUPPORTED_COLOR_MODES]
+                    and ColorMode.COLOR_TEMP in attributes[ATTR_SUPPORTED_COLOR_MODES]
                     else {
                         ATTR_BRIGHTNESS_PCT: msg[1],
                         ATTR_RGB_COLOR: [
@@ -307,7 +300,7 @@ ENTITIES_CONFIG: dict[str, Any] = {
     CLIMATE_DOMAIN: {
         SUFFIX: TOPIC_SUFFIX_CLIMATE,
         GENERATE: [
-            lambda state, attributes: MSG_OFF if state == HVAC_MODE_OFF else MSG_ON,
+            lambda state, attributes: MSG_OFF if state == HVACMode.OFF else MSG_ON,
             lambda state, attributes: SUPPORTED_HVAC_MODES.index(state) + 1
             if state in SUPPORTED_HVAC_MODES
             else "",
@@ -356,15 +349,16 @@ ENTITIES_CONFIG: dict[str, Any] = {
                     VACUUM_DOMAIN,
                     SERVICE_START
                     if msg[0] == MSG_ON
-                    and attributes[ATTR_SUPPORTED_FEATURES] & SUPPORT_START
+                    and attributes[ATTR_SUPPORTED_FEATURES] & VacuumEntityFeature.START
                     else SERVICE_TURN_ON
                     if msg[0] == MSG_ON
                     else SERVICE_RETURN_TO_BASE
                     if msg[0] == MSG_OFF
-                    and attributes[ATTR_SUPPORTED_FEATURES] & SUPPORT_RETURN_HOME
+                    and attributes[ATTR_SUPPORTED_FEATURES]
+                    & VacuumEntityFeature.RETURN_HOME
                     else SERVICE_STOP
                     if msg[0] == MSG_OFF
-                    and attributes[ATTR_SUPPORTED_FEATURES] & SUPPORT_STOP
+                    and attributes[ATTR_SUPPORTED_FEATURES] & VacuumEntityFeature.STOP
                     else SERVICE_TURN_OFF,
                     None,
                 ),

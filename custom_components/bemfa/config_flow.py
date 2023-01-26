@@ -9,13 +9,12 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
-from .const import CONF_INCLUDE_ENTITIES, CONF_UID, DOMAIN, TOPIC_PING
-from .entities_config import ENTITIES_CONFIG, FILTER
-from .helper import generate_topic
-from .http import BemfaHttp
+from .const import CONF_INCLUDE_ENTITIES, CONF_UID, DOMAIN
+from .service import BemfaService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,18 +30,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    _user_input: dict[str, Any] = {}
-    _http: BemfaHttp
-    _all_topics: dict[str, str]
-
-    # Bemfa Service uses uid to auth api calls. One shall provide his uid to config this integration.
+    # Bemfa service uses uid to auth api calls. One shall provide his uid to config this integration.
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
         if user_input is None:
             return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA, last_step=False
+                step_id="user", data_schema=STEP_USER_DATA_SCHEMA, last_step=True
             )
 
         # uid should match this regExp
@@ -51,110 +46,110 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="user",
                 data_schema=STEP_USER_DATA_SCHEMA,
                 errors={"base": "invalid_uid"},
-                last_step=False,
-            )
-
-        # Multiply integration instances with same uid may case unexpected results.
-        # We save the md5sum of each configured uid to self.hass.data[DOMAIN].
-        # And check if this uid has been configured.
-        if DOMAIN in self.hass.data:
-            uid_md5 = hashlib.md5(user_input[CONF_UID].encode("utf-8")).hexdigest()
-            for data in self.hass.data[DOMAIN].values():
-                if data["uid_md5"] == uid_md5:
-                    return self.async_show_form(
-                        step_id="user",
-                        data_schema=STEP_USER_DATA_SCHEMA,
-                        errors={"base": "duplicated_uid"},
-                        last_step=False,
-                    )
-
-        self._user_input.update(user_input)
-        return await self.async_step_entities()
-
-    # Bemfa Service commuicates with devices by mqtt.
-    # Each device corresponds to a particular topic whose suffix is a 3 digit number to indicate its type.
-    # We guide one to sellect entities he wants to sync to Bemfa Service.
-    # Then we make http calls to submit his selection.
-    # At this moment, editing selection after configuration is not supported.
-    # One may remove this integration and config again to achieve this.
-    # When reconfiguring, entities selected last time will be checked by default.
-    async def async_step_entities(self, user_input: dict[str, Any] | None = None):
-        """Select entities."""
-        if user_input is None:
-            self._http = BemfaHttp(self.hass, self._user_input[CONF_UID])
-
-            # fetch topics created by us before.
-            self._all_topics = await self._http.async_fetch_all_topics()
-
-            # filter entities we support
-            entities = sorted(
-                filter(
-                    lambda item: FILTER not in ENTITIES_CONFIG[item.domain]
-                    or ENTITIES_CONFIG[item.domain][FILTER](item.attributes),
-                    self.hass.states.async_all(ENTITIES_CONFIG.keys()),
-                ),
-                key=lambda item: item.entity_id,
-            )
-
-            # find entities configured last time
-            default = [
-                entity.entity_id
-                for entity in filter(
-                    lambda ent: generate_topic(ent.domain, ent.entity_id)
-                    in self._all_topics,
-                    entities,
-                )
-            ]
-
-            return self.async_show_form(
-                step_id="entities",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required(
-                            CONF_INCLUDE_ENTITIES,
-                            default=default,
-                        ): cv.multi_select(
-                            {entity.entity_id: entity.name for entity in entities}
-                        ),
-                    }
-                ),
                 last_step=True,
             )
 
-        # create topic for heartbeat packages
-        if TOPIC_PING not in self._all_topics:
-            await self._http.async_add_topic(TOPIC_PING, "ping")
-        else:
-            # This topic does not matter to entities, remove it for following syncs
-            del self._all_topics[TOPIC_PING]
+        # Multiply integration instances with same uid may case unexpected results.
+        # We treat the md5sum of each configured uid as unique.
+        uid_md5 = hashlib.md5(user_input[CONF_UID].encode("utf-8")).hexdigest()
+        await self.async_set_unique_id(uid_md5)
+        self._abort_if_unique_id_configured()
 
-        # start to sync selected entities to Bemfa Service
-        for entity_id in user_input[CONF_INCLUDE_ENTITIES]:
+        return self.async_create_entry(
+            title="Bemfa",
+            data=user_input,
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> OptionsFlowHandler:
+        """Create the options flow."""
+        return OptionsFlowHandler(config_entry)
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle a option flow for bemfa."""
+
+    _config_entry: config_entries.ConfigEntry
+    _topic_map: dict[str, tuple[str, str | None]]
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._config_entry = config_entry
+
+    # We guide one to sellect entities he wants to sync to bemfa service.
+    # Then we make http calls to submit his selection.
+    # When reconfiguring, entities selected last time will be checked by default.
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        service = self._get_service()
+
+        # select entities
+        entities = service.get_supported_entities()
+        self._topic_map = await service.fetch_synced_data_from_server()
+
+        return self.async_show_form(
+            step_id="entities",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_INCLUDE_ENTITIES,
+                        default=[
+                            item[1]
+                            for item in filter(
+                                lambda item: item[1] is not None,
+                                self._topic_map.values(),
+                            )
+                        ],
+                    ): cv.multi_select(
+                        {entity.entity_id: entity.name for entity in entities}
+                    ),
+                }
+            ),
+            last_step=True,
+        )
+
+    async def async_step_entities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Sync selected entities to bemfa service."""
+        service = self._get_service()
+
+        current_entities: dict(str, tuple(str, str)) = {}
+        for (topic, (name, entity_id)) in self._topic_map.items():
+            if entity_id is None:
+                # remove unused topics
+                await service.remove_topic(topic)
+            else:
+                current_entities[entity_id] = (topic, name)
+
+        current_entity_ids = set(current_entities.keys())
+        new_entity_ids = set(user_input[CONF_INCLUDE_ENTITIES])
+
+        # removed entites
+        for entity_id in current_entity_ids - new_entity_ids:
+            await service.remove_topic(current_entities[entity_id][0])
+
+        # renamed entities?
+        for entity_id in current_entity_ids & new_entity_ids:
             state = self.hass.states.get(entity_id)
             if state is None:
                 continue
-            topic = generate_topic(state.domain, entity_id)
+            if state.name != current_entities[entity_id][1]:
+                await service.rename_topic(current_entities[entity_id][0], state.name)
 
-            if topic in self._all_topics:
-                # topic has already been configured before, reuse it
-                if self._all_topics[topic] != state.name:
-                    await self._http.async_rename_topic(topic, state.name)
-
-                # remove topic from self._all_topics when its entity is selected.
-                # After the loop, topics remained in self._all_topics are to be removed.
-                del self._all_topics[topic]
-            else:
-                # topic not configured before, create it
-                await self._http.async_add_topic(topic, state.name)
-
-        # remove the topics we do not need
-        for topic in self._all_topics:
-            await self._http.async_del_topic(topic)
+        # added entities
+        for entity_id in new_entity_ids - current_entity_ids:
+            await service.add_topic(entity_id)
         # end to sync
 
-        self._user_input.update(user_input)
-        entity_num = len(user_input[CONF_INCLUDE_ENTITIES])
         return self.async_create_entry(
-            title=f"{self._user_input[CONF_UID][-10:]} ({entity_num})",
-            data=self._user_input,
+            data=user_input,
         )
+
+    def _get_service(self) -> BemfaService:
+        return self.hass.data[DOMAIN].get(self._config_entry.entry_id)["service"]

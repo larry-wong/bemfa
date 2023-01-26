@@ -12,7 +12,8 @@ from .entities_config import ENTITIES_CONFIG, GENERATE, RESOLVE, SUFFIX
 
 _LOGGING = logging.getLogger(__name__)
 
-
+# Bemfa service commuicates with devices by mqtt.
+# Each device corresponds to a particular topic whose suffix is a 3 digit number to indicate its type.
 def generate_topic(domain: str, entity_id: str) -> str:
     """Generate topic by hass entity id."""
     suffix = ENTITIES_CONFIG[domain][SUFFIX]

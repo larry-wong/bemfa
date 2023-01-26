@@ -1,23 +1,30 @@
 {
+  "title": "Bemfa",
   "config": {
-    "step": {
-      "user": {
-        "title": "Bemfa User",
-        "data": {
-          "uid": "Bemfa UID"
-        }
+      "abort": {
+          "already_configured": "This UID has been already configured"
+        },
+      "error": {
+          "invalid_uid": "Invalid UID"
       },
-      "entities": {
-        "title": "Entities",
-        "description": "Select entities to synchronize to Bemfa Service:",
-        "data": {
-          "include_entities": "Select Entities"
-        }
+      "step": {
+          "user": {
+              "data": {
+                  "uid": "Bemfa UID"
+              },
+              "title": "Bemfa User"
+          }
       }
-    },
-    "error": {
-      "invalid_uid": "Invalid UID",
-      "duplicated_uid": "This UID has already been configured"
-    }
+  },
+  "options": {
+      "step": {
+          "entities": {
+              "data": {
+                  "include_entities": "Select Entities"
+              },
+              "description": "Select entities to synchronize to bemfa service:",
+              "title": "Entities"
+          }
+      }
   }
 }
