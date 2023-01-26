@@ -1,5 +1,4 @@
 {
-  "title": "Bemfa",
   "config": {
       "abort": {
           "already_configured": "This UID has been already configured"
