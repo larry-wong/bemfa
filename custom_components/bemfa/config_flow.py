@@ -148,6 +148,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # end to sync
 
         return self.async_create_entry(
+            title="",
             data=user_input,
         )
 
