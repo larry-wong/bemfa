@@ -21,7 +21,7 @@
   1. 操作简单，只需要下载一个插件，且是可视化配置。
   2. 无需公网 ip, 无需 NR.
 
-## 实现原理
+## 原理
 巴法云使用 MQTT 与终端设备通信，每个设备对应一个主题。
 
 此插件根据用户选择的需要同步的实体，调用巴法云 API 创建对应主题，将此实体的实时状态发布至此主题，并订阅此主题的信息以控制它。
@@ -52,3 +52,8 @@
   - Q: 同时有小爱同学和天猫精灵，如何只同步非米家设备至小爱同学，并同步所有设备至天猫精灵？
 
     A: 目前没有太好的方案，一个可行的方案是注册2个巴法云账号，分别配置不同的实体进行同步，然后将2个账号分别绑定到小爱同学和天猫精灵。
+
+## 捐赠
+如果此项目对你有帮助，可以考虑请我喝杯咖啡 :)
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <img src="donate/wechat.png" width="200" title="使用微信扫一扫" /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <img src="donate/alipay.png" width="200" title="使用支付宝扫一扫" />
