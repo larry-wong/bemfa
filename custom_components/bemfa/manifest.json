@@ -1,17 +1,17 @@
 {
   "domain": "bemfa",
   "name": "Bemfa",
-  "version": "1.1.1",
-  "config_flow": true,
-  "documentation": "https://github.com/larry-wong/bemfa",
-  "issue_tracker": "https://github.com/larry-wong/bemfa/issues",
-  "requirements": ["paho-mqtt==1.6.1"],
-  "ssdp": [],
-  "zeroconf": [],
-  "homekit": {},
-  "dependencies": [],
   "codeowners": [
     "@larry-wong"
   ],
-  "iot_class": "cloud_push"
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/larry-wong/bemfa",
+  "homekit": {},
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/larry-wong/bemfa/issues",
+  "requirements": ["paho-mqtt==1.6.1"],
+  "ssdp": [],
+  "version": "1.2.0",
+  "zeroconf": []
 }

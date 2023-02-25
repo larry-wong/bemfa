@@ -2,11 +2,24 @@
 
 from typing import Final
 
+from homeassistant.backports.enum import StrEnum
+
 DOMAIN: Final = "bemfa"
 
 # #### Config ####
 CONF_UID: Final = "uid"
-CONF_INCLUDE_ENTITIES: Final = "include_entities"
+
+# ### Options ###
+class Operation(StrEnum):
+    """Operation for bemfa integration"""
+
+    ADD = "add"
+    MODIFY = "modify"
+
+
+OPTIONS_OPERATION: Final = "operation"
+OPTIONS_SELECT: Final = "select"
+OPTIONS_NAME: Final = "name"
 
 # #### MQTT ####
 MQTT_HOST: Final = "bemfa.com"

@@ -6,7 +6,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_INCLUDE_ENTITIES, CONF_UID, DOMAIN
+from .const import CONF_UID, DOMAIN
 from .mqtt import BemfaMqtt
 from .service import BemfaService
 

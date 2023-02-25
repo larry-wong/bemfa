@@ -17,12 +17,41 @@
     },
     "options": {
         "step": {
-            "entities": {
+            "init": {
+                "title": "Operations",
+                "menu_options": {
+                    "add_sync": "Sync an entity",
+                    "modify_sync": "Modify a sync",
+                    "remove_sync": "Remove syncs"
+                }
+            },
+            "add_sync": {
+                "title": "Sync an entity",
+                "description": "Sync a hass entity to bemfa service.",
                 "data": {
-                    "include_entities": "Select Entities"
-                },
-                "description": "Select entities to synchronize to bemfa service:",
-                "title": "Entities"
+                    "select": "Select an entity"
+                }
+            },
+            "modify_sync": {
+                "title": "Modify a sync",
+                "description": "Modify a hass-to-bemfa sync",
+                "data": {
+                    "select": "Select a sync"
+                }
+            },
+            "remove_sync": {
+                "title": "Remove sync(s)",
+                "description": "Remove hass-to-bemfa sync(s)",
+                "data": {
+                    "select": "Select sync(s)"
+                }
+            },
+            "set_sync_name": {
+                "title": "Set name",
+                "description": "Set name of this entity after sync to bemfa service.",
+                "data": {
+                    "name": "name"
+                }
             }
         }
     }

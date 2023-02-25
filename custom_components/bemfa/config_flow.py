@@ -13,7 +13,14 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
-from .const import CONF_INCLUDE_ENTITIES, CONF_UID, DOMAIN
+from .const import (
+    CONF_UID,
+    DOMAIN,
+    OPTIONS_NAME,
+    OPTIONS_OPERATION,
+    OPTIONS_SELECT,
+    Operation,
+)
 from .service import BemfaService
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,83 +80,162 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for bemfa."""
 
     _config_entry: config_entries.ConfigEntry
-    _topic_map: dict[str, tuple[str, str | None]]
+    _user_input: dict[str, str] = {}
+
+    # a dict to hold id/topic_2_name mapping when add / modify a sync
+    # with this map we can get default name in next step
+    _name_dict: dict[str, str] = {}
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self._config_entry = config_entry
 
-    # We guide one to sellect entities he wants to sync to bemfa service.
-    # Then we make http calls to submit his selection.
-    # When reconfiguring, entities selected last time will be checked by default.
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
-        service = self._get_service()
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["add_sync", "modify_sync", "remove_sync"],
+        )
 
-        # select entities
-        entities = service.get_supported_entities()
-        self._topic_map = await service.fetch_synced_data_from_server()
+    async def async_step_add_sync(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Sync a hass entity to bemfa service"""
+        if user_input is not None:
+            return await self.async_step_set_sync_name(user_input)
+
+        service = self._get_service()
+        all_entities = service.get_supported_entities()
+        topic_map = await service.fetch_synced_data_from_server()
+        synced_entity_ids = set(
+            [
+                item[1]
+                for item in filter(lambda item: item[1] is not None, topic_map.values())
+            ]
+        )
+
+        # filter out unsynced entities
+        self._name_dict.clear()
+        for entity in filter(
+            lambda entity: entity.entity_id not in synced_entity_ids, all_entities
+        ):
+            self._name_dict[entity.entity_id] = entity.name
+
+        self._user_input[OPTIONS_OPERATION] = Operation.ADD
 
         return self.async_show_form(
-            step_id="entities",
+            step_id="add_sync",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(OPTIONS_SELECT): vol.In(
+                        {
+                            entity_id: name + " (" + entity_id + ")"
+                            for (entity_id, name) in self._name_dict.items()
+                        }
+                    )
+                }
+            ),
+            last_step=False,
+        )
+
+    async def async_step_modify_sync(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Modify a hass-to-bemfa sync"""
+        if user_input is not None:
+            return await self.async_step_set_sync_name(user_input)
+
+        service = self._get_service()
+        topic_map = await service.fetch_synced_data_from_server()
+
+        # filter out synced entities
+        self._name_dict.clear()
+        topic_id_dict: dict[str, str] = {}
+        for (topic, [name, entity_id]) in topic_map.items():
+            if entity_id is not None:
+                self._name_dict[topic] = name
+                topic_id_dict[topic] = entity_id
+
+        self._user_input[OPTIONS_OPERATION] = Operation.MODIFY
+
+        return self.async_show_form(
+            step_id="modify_sync",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(OPTIONS_SELECT): vol.In(
+                        {
+                            topic: name + " (" + topic_id_dict[topic] + ")"
+                            for (topic, name) in self._name_dict.items()
+                        }
+                    )
+                }
+            ),
+            last_step=False,
+        )
+
+    async def async_step_remove_sync(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Remove hass-to-bemfa sync(s)"""
+        if user_input is not None:
+            service = self._get_service()
+            for topic in user_input[OPTIONS_SELECT]:
+                await service.remove_topic(topic)
+            self._user_input.clear()
+            return self.async_create_entry(title="", data=None)
+
+        service = self._get_service()
+        topic_map = await service.fetch_synced_data_from_server()
+
+        return self.async_show_form(
+            step_id="remove_sync",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(OPTIONS_SELECT): cv.multi_select(
+                        {
+                            topic: name
+                            + (" (" + entity_id + ")" if entity_id is not None else "")
+                            for (topic, [name, entity_id]) in topic_map.items()
+                        }
+                    )
+                }
+            ),
+            last_step=False,
+        )
+
+    async def async_step_set_sync_name(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a sync"""
+        self._user_input.update(user_input)
+        if OPTIONS_NAME in self._user_input:
+            service = self._get_service()
+            if self._user_input[OPTIONS_OPERATION] == Operation.ADD:
+                await service.add_topic(
+                    self._user_input[OPTIONS_SELECT],
+                    self._user_input[OPTIONS_NAME],
+                )
+            else:
+                await service.rename_topic(
+                    self._user_input[OPTIONS_SELECT],
+                    self._user_input[OPTIONS_NAME],
+                )
+            self._user_input.clear()
+            self._name_dict.clear()
+            return self.async_create_entry(title="", data=None)
+
+        return self.async_show_form(
+            step_id="set_sync_name",
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_INCLUDE_ENTITIES,
-                        default=[
-                            item[1]
-                            for item in filter(
-                                lambda item: item[1] is not None,
-                                self._topic_map.values(),
-                            )
-                        ],
-                    ): cv.multi_select(
-                        {entity.entity_id: entity.name for entity in entities}
-                    ),
+                        OPTIONS_NAME,
+                        default=self._name_dict[self._user_input[OPTIONS_SELECT]],
+                    ): str
                 }
             ),
-            last_step=True,
-        )
-
-    async def async_step_entities(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Sync selected entities to bemfa service."""
-        service = self._get_service()
-
-        current_entities: dict(str, tuple(str, str)) = {}
-        for (topic, (name, entity_id)) in self._topic_map.items():
-            if entity_id is None:
-                # remove unused topics
-                await service.remove_topic(topic)
-            else:
-                current_entities[entity_id] = (topic, name)
-
-        current_entity_ids = set(current_entities.keys())
-        new_entity_ids = set(user_input[CONF_INCLUDE_ENTITIES])
-
-        # removed entites
-        for entity_id in current_entity_ids - new_entity_ids:
-            await service.remove_topic(current_entities[entity_id][0])
-
-        # renamed entities?
-        for entity_id in current_entity_ids & new_entity_ids:
-            state = self.hass.states.get(entity_id)
-            if state is None:
-                continue
-            if state.name != current_entities[entity_id][1]:
-                await service.rename_topic(current_entities[entity_id][0], state.name)
-
-        # added entities
-        for entity_id in new_entity_ids - current_entity_ids:
-            await service.add_topic(entity_id)
-        # end to sync
-
-        return self.async_create_entry(
-            title="",
-            data=user_input,
         )
 
     def _get_service(self) -> BemfaService:

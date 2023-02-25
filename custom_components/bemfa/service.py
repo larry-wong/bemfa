@@ -60,7 +60,7 @@ class BemfaService:
 
     async def fetch_synced_data_from_server(
         self,
-    ) -> dict[str, tuple[str, str | None]]:  # topic -> [name, entity_id]
+    ) -> dict[str, tuple[str, str | None]]:  # topic -> [name, entity_id | None]
         """Fetch data we've synchronized to bemfa service."""
         all_topics = await self._bemfa_http.async_fetch_all_topics()
 
@@ -92,13 +92,13 @@ class BemfaService:
         )
         return entities
 
-    async def add_topic(self, entity_id: str):
+    async def add_topic(self, entity_id: str, name: str):
         """Sync an topic to bemfa service"""
         state = self._hass.states.get(entity_id)
         if state is None:
             return
         topic = generate_topic(state.domain, entity_id)
-        await self._bemfa_http.async_add_topic(topic, state.name)
+        await self._bemfa_http.async_add_topic(topic, name)
         self._bemfa_mqtt.add_topic(topic, entity_id)
 
     async def rename_topic(self, topic: str, name: str):
