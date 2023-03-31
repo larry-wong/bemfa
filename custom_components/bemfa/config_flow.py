@@ -5,7 +5,6 @@ import hashlib
 import logging
 import re
 from typing import Any
-
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -13,13 +12,12 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
+from .sync import SYNC_TYPES, Sync
 from .const import (
     CONF_UID,
     DOMAIN,
-    OPTIONS_NAME,
-    OPTIONS_OPERATION,
+    OPTIONS_CONFIG,
     OPTIONS_SELECT,
-    Operation,
 )
 from .service import BemfaService
 
@@ -79,16 +77,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle a option flow for bemfa."""
 
-    _config_entry: config_entries.ConfigEntry
-    _user_input: dict[str, str] = {}
+    # creat or modify a sync
+    _is_create: bool
 
-    # a dict to hold id/topic_2_name mapping when add / modify a sync
-    # with this map we can get default name in next step
-    _name_dict: dict[str, str] = {}
+    # a dict to hold syncs when create / modify one of them
+    # with this map we can get it in the next step
+    _sync_dict: dict[str, Sync]
+
+    # current sync we are creating or modifu
+    _sync: Sync
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self._config_entry = config_entry
+        self._entry_id = config_entry.entry_id
+        self._config = (
+            config_entry.options[OPTIONS_CONFIG].copy()
+            if OPTIONS_CONFIG in config_entry.options
+            else {}
+        )
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -96,43 +102,39 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the options."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=["add_sync", "modify_sync", "remove_sync"],
+            menu_options=[
+                "create_sync",
+                "modify_sync",
+                "destroy_sync",
+            ],
         )
 
-    async def async_step_add_sync(
+    async def async_step_create_sync(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Sync a hass entity to bemfa service"""
+        """Create a hass-to-bemfa sync."""
         if user_input is not None:
-            return await self.async_step_set_sync_name(user_input)
+            self._sync = self._sync_dict[user_input[OPTIONS_SELECT]]
+            return await self._async_step_sync_config()
 
         service = self._get_service()
-        all_entities = service.get_supported_entities()
-        topic_map = await service.fetch_synced_data_from_server()
-        synced_entity_ids = set(
-            [
-                item[1]
-                for item in filter(lambda item: item[1] is not None, topic_map.values())
-            ]
-        )
+        all_topics = await service.async_fetch_all_topics()
+        all_syncs = service.collect_supported_syncs()
+        self._sync_dict = {}
+        for sync in all_syncs:
+            if sync.topic not in all_topics:
+                self._sync_dict[sync.entity_id] = sync
 
-        # filter out unsynced entities
-        self._name_dict.clear()
-        for entity in filter(
-            lambda entity: entity.entity_id not in synced_entity_ids, all_entities
-        ):
-            self._name_dict[entity.entity_id] = entity.name
-
-        self._user_input[OPTIONS_OPERATION] = Operation.ADD
+        self._is_create = True
 
         return self.async_show_form(
-            step_id="add_sync",
+            step_id="create_sync",
             data_schema=vol.Schema(
                 {
                     vol.Required(OPTIONS_SELECT): vol.In(
                         {
-                            entity_id: name + " (" + entity_id + ")"
-                            for (entity_id, name) in self._name_dict.items()
+                            sync.entity_id: sync.generate_option_label()
+                            for sync in self._sync_dict.values()
                         }
                     )
                 }
@@ -143,22 +145,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_modify_sync(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Modify a hass-to-bemfa sync"""
+        """Modify a hass-to-bemfa sync."""
         if user_input is not None:
-            return await self.async_step_set_sync_name(user_input)
+            self._sync = self._sync_dict[user_input[OPTIONS_SELECT]]
+            return await self._async_step_sync_config()
 
         service = self._get_service()
-        topic_map = await service.fetch_synced_data_from_server()
+        all_topics = await service.async_fetch_all_topics()
+        all_syncs = service.collect_supported_syncs()
+        self._sync_dict = {}
+        for sync in all_syncs:
+            if sync.topic in all_topics:
+                sync.name = all_topics[sync.topic]
+                self._sync_dict[sync.entity_id] = sync
 
-        # filter out synced entities
-        self._name_dict.clear()
-        topic_id_dict: dict[str, str] = {}
-        for (topic, [name, entity_id]) in topic_map.items():
-            if entity_id is not None:
-                self._name_dict[topic] = name
-                topic_id_dict[topic] = entity_id
-
-        self._user_input[OPTIONS_OPERATION] = Operation.MODIFY
+        self._is_create = False
 
         return self.async_show_form(
             step_id="modify_sync",
@@ -166,8 +167,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Required(OPTIONS_SELECT): vol.In(
                         {
-                            topic: name + " (" + topic_id_dict[topic] + ")"
-                            for (topic, name) in self._name_dict.items()
+                            sync.entity_id: sync.generate_option_label()
+                            for sync in self._sync_dict.values()
                         }
                     )
                 }
@@ -175,68 +176,107 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             last_step=False,
         )
 
-    async def async_step_remove_sync(
+    async def _async_step_sync_config(self) -> FlowResult:
+        """Set details of a hass-to-bemfa sync."""
+        if self._sync.topic in self._config:
+            self._sync.config = self._config[self._sync.topic]
+
+        return self.async_show_form(
+            step_id=self._sync.get_config_step_id(),
+            data_schema=vol.Schema(self._sync.generate_details_schema()),
+        )
+
+    async def async_step_sync_config_sensor(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Remove hass-to-bemfa sync(s)"""
+        """Set details of a hass-to-bemfa sensor sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def async_step_sync_config_binary_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a hass-to-bemfa binary sensor sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def async_step_sync_config_climate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a hass-to-bemfa climate sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def async_step_sync_config_cover(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a hass-to-bemfa cover sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def async_step_sync_config_fan(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a hass-to-bemfa fan sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def async_step_sync_config_light(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a hass-to-bemfa light sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def async_step_sync_config_switch(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set details of a hass-to-bemfa switch sync."""
+        return await self._async_step_sync_config_done(user_input)
+
+    async def _async_step_sync_config_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        service = self._get_service()
+        if self._is_create:
+            await service.async_create_sync(self._sync, user_input)
+        else:
+            await service.async_modify_sync(self._sync, user_input)
+
+        # store config to integration options
+        if self._sync.config:
+            self._config[self._sync.topic] = self._sync.config
+        elif self._sync.topic in self._config:
+            self._config.pop(self._sync.topic)
+        return self.async_create_entry(title="", data={OPTIONS_CONFIG: self._config})
+
+    async def async_step_destroy_sync(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Destroy hass-to-bemfa sync(s)"""
+        service = self._get_service()
         if user_input is not None:
-            service = self._get_service()
             for topic in user_input[OPTIONS_SELECT]:
                 await service.remove_topic(topic)
-            self._user_input.clear()
-            return self.async_create_entry(title="", data=None)
+                if topic in self._config:
+                    self._config.pop(topic)
+            return self.async_create_entry(
+                title="", data={OPTIONS_CONFIG: self._config}
+            )
 
-        service = self._get_service()
-        topic_map = await service.fetch_synced_data_from_server()
+        all_topics = await service.async_fetch_all_topics()
+        all_syncs = service.collect_supported_syncs()
+        topic_map: dict[str, str] = {}
+        for sync in all_syncs:
+            if sync.topic in all_topics:
+                sync.name = all_topics[sync.topic]
+                all_topics.pop(sync.topic)
+                topic_map[sync.topic] = sync.generate_option_label()
+
+        for (topic, name) in all_topics.items():
+            topic_map[topic] = "[?] {name}".format(name=name)
 
         return self.async_show_form(
-            step_id="remove_sync",
+            step_id="destroy_sync",
             data_schema=vol.Schema(
-                {
-                    vol.Required(OPTIONS_SELECT): cv.multi_select(
-                        {
-                            topic: name
-                            + (" (" + entity_id + ")" if entity_id is not None else "")
-                            for (topic, [name, entity_id]) in topic_map.items()
-                        }
-                    )
-                }
+                {vol.Required(OPTIONS_SELECT): cv.multi_select(topic_map)}
             ),
             last_step=False,
-        )
-
-    async def async_step_set_sync_name(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Set details of a sync"""
-        self._user_input.update(user_input)
-        if OPTIONS_NAME in self._user_input:
-            service = self._get_service()
-            if self._user_input[OPTIONS_OPERATION] == Operation.ADD:
-                await service.add_topic(
-                    self._user_input[OPTIONS_SELECT],
-                    self._user_input[OPTIONS_NAME],
-                )
-            else:
-                await service.rename_topic(
-                    self._user_input[OPTIONS_SELECT],
-                    self._user_input[OPTIONS_NAME],
-                )
-            self._user_input.clear()
-            self._name_dict.clear()
-            return self.async_create_entry(title="", data=None)
-
-        return self.async_show_form(
-            step_id="set_sync_name",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        OPTIONS_NAME,
-                        default=self._name_dict[self._user_input[OPTIONS_SELECT]],
-                    ): str
-                }
-            ),
         )
 
     def _get_service(self) -> BemfaService:
-        return self.hass.data[DOMAIN].get(self._config_entry.entry_id)["service"]
+        return self.hass.data[DOMAIN].get(self._entry_id)["service"]

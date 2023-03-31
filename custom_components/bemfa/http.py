@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    ADD_TOPIC_URL,
+    CREATE_TOPIC_URL,
     DEL_TOPIC_URL,
     FETCH_TOPICS_URL,
     RENAME_TOPIC_URL,
@@ -41,13 +41,13 @@ class BemfaHttp:
                 }
             return {}
 
-    async def async_add_topic(self, topic: str, name: str) -> None:
-        """Add a topic to bemfa service."""
+    async def async_create_topic(self, topic: str, name: str) -> None:
+        """Create a topic to bemfa service."""
         if not topic.startswith(TOPIC_PREFIX):
             return
         session = async_get_clientsession(self._hass)
         await session.post(
-            ADD_TOPIC_URL,
+            CREATE_TOPIC_URL,
             data={
                 "uid": self._uid,
                 "topic": topic,

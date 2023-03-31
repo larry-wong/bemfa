@@ -6,9 +6,19 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_UID, DOMAIN
+from .const import CONF_UID, DOMAIN, OPTIONS_CONFIG
 from .mqtt import BemfaMqtt
 from .service import BemfaService
+
+from . import (
+    sync_binary_sensor,
+    sync_sensor,
+    sync_light,
+    sync_fan,
+    sync_cover,
+    sync_climate,
+    sync_switch,
+)
 
 _LOGGING = logging.getLogger(__name__)
 
@@ -17,8 +27,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up bemfa from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    service = BemfaService(hass, entry.data.get(CONF_UID))
-    await service.start()
+    service = BemfaService(hass, entry.data[CONF_UID])
+    await service.async_start(
+        entry.options[OPTIONS_CONFIG] if OPTIONS_CONFIG in entry.options else {}
+    )
 
     hass.data[DOMAIN][entry.entry_id] = {
         "service": service,

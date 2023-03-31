@@ -1,15 +1,15 @@
 {
     "config": {
         "abort": {
-            "already_configured": "\u6b64 UID \u5df2\u7ecf\u914d\u7f6e"
+            "already_configured": "\u6b64\u79c1\u94a5\u5df2\u7ecf\u914d\u7f6e"
           },
         "error": {
-            "invalid_uid": "\u975e\u6cd5\u7684 UID"
+            "invalid_uid": "\u975e\u6cd5\u7684\u79c1\u94a5"
         },
         "step": {
             "user": {
                 "data": {
-                    "uid": "\u5df4\u6cd5\u4e91 UID"
+                    "uid": "\u5df4\u6cd5\u4e91\u79c1\u94a5"
                 },
                 "title": "\u5df4\u6cd5\u4e91\u7528\u6237"
             }
@@ -20,12 +20,12 @@
             "init": {
                 "title": "\u64cd\u4f5c",
                 "menu_options": {
-                    "add_sync": "\u540c\u6b65\u5b9e\u4f53",
+                    "create_sync": "\u540c\u6b65\u5b9e\u4f53",
                     "modify_sync": "\u7f16\u8f91\u540c\u6b65",
-                    "remove_sync": "\u5220\u9664\u540c\u6b65"
+                    "destroy_sync": "\u5220\u9664\u540c\u6b65"
                 }
             },
-            "add_sync": {
+            "create_sync": {
                 "title": "\u540c\u6b65\u5b9e\u4f53",
                 "description": "\u540c\u6b65\u4e00\u4e2a\u5b9e\u4f53\u81f3\u5df4\u6cd5\u4e91\u3002",
                 "data": {
@@ -39,18 +39,64 @@
                     "select": "\u9009\u62e9\u540c\u6b65"
                 }
             },
-            "remove_sync": {
+            "sync_config_sensor": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u6b64\u533a\u57df\u4e0b\u7684\u73af\u5883\u4f20\u611f\u5668\u6253\u5305\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u67e5\u8be2\u3002\n\u5404\u8bed\u97f3\u5e73\u53f0\u5bf9\u4f20\u611f\u5668\u652f\u6301\u4e0d\u5c3d\u76f8\u540c\uff1a\n\u5c0f\u7231\u540c\u5b66\u4ec5\u652f\u6301\u6e29\u5ea6\u548c\u6e7f\u5ea6\u4f20\u611f\u5668\uff1b\n\u5929\u732b\u7cbe\u7075\u652f\u6301\u6e29\u5ea6/\u6e7f\u5ea6/\u5149\u7167\u548c PM2.5 \u4f20\u611f\u5668\uff1b\n\u5c0f\u5ea6\u652f\u6301\u6e29\u5ea6/\u6e7f\u5ea6/PM2.5 \u548c\u4e8c\u6c27\u5316\u78b3\u4f20\u611f\u5668\u3002\n\u5177\u4f53\u8bf7\u53c2\u8003\u5df4\u6cd5\u4e91\u6587\u6863\u3002",
+                "data": {
+                    "name": "\u540d\u79f0",
+                    "temperature": "\u9009\u62e9\u6e29\u5ea6\u4f20\u611f\u5668",
+                    "humidity": "\u9009\u62e9\u6e7f\u5ea6\u4f20\u611f\u5668",
+                    "illuminance": "\u9009\u62e9\u5149\u7167\u4f20\u611f\u5668",
+                    "pm25": "\u9009\u62e9 PM2.5 \u4f20\u611f\u5668"
+                }
+            },
+            "sync_config_binary_sensor": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u4e8c\u5143\u4f20\u611f\u5668\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u67e5\u8be2\u5176\u72b6\u6001\u3002",
+                "data": {
+                    "name": "\u540d\u79f0"
+                }
+            },
+            "sync_config_climate": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u7a7a\u8c03\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed/\u8bbe\u5b9a\u6a21\u5f0f/\u8bbe\u5b9a\u6e29\u5ea6\u3002",
+                "data": {
+                    "name": "\u540d\u79f0"
+                }
+            },
+            "sync_config_cover": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u5377\u5e18\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed/\u505c\u6b62/\u8bbe\u5b9a\u4f4d\u7f6e\u3002",
+                "data": {
+                    "name": "\u540d\u79f0"
+                }
+            },
+            "sync_config_fan": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u98ce\u6247\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed/\u8c03\u8282\u98ce\u901f/\u5f00\u5173\u6447\u5934\u3002",
+                "data": {
+                    "name": "\u540d\u79f0"
+                }
+            },
+            "sync_config_light": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u706f\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed/\u8c03\u8282\u4eae\u5ea6/\u8c03\u8282\u8272\u6e29/\u8c03\u8282\u989c\u8272\u3002",
+                "data": {
+                    "name": "\u540d\u79f0"
+                }
+            },
+            "sync_config_switch": {
+                "title": "\u914d\u7f6e",
+                "description": "\u5c06\u6b64\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed\u3002",
+                "data": {
+                    "name": "\u540d\u79f0"
+                }
+            },
+            "destroy_sync": {
                 "title": "\u5220\u9664\u540c\u6b65",
                 "description": "\u5220\u9664\u5230\u5df4\u6cd5\u4e91\u7684\u540c\u6b65\uff08\u53ef\u591a\u9009\uff09\u3002",
                 "data": {
                     "select": "\u9009\u62e9\u540c\u6b65"
-                }
-            },
-            "set_sync_name": {
-                "title": "\u8bbe\u7f6e\u540d\u79f0",
-                "description": "\u8bbe\u7f6e\u6b64\u5b9e\u4f53\u540c\u6b65\u5230\u5df4\u6cd5\u4e91\u540e\u7684\u540d\u79f0\u3002",
-                "data": {
-                    "name": "\u540d\u79f0"
                 }
             }
         }

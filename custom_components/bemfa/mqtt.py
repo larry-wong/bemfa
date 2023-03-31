@@ -8,7 +8,6 @@ from typing import Any
 import paho.mqtt.client as mqtt
 
 from homeassistant.const import (
-    ATTR_ENTITY_ID,
     EVENT_STATE_CHANGED,
 )
 from homeassistant.core import HomeAssistant
@@ -23,23 +22,14 @@ from .const import (
     TOPIC_PING,
     TOPIC_PUBLISH,
 )
-from .helper import (
-    generate_msg,
-    generate_msg_list,
-    resolve_msg,
-)
+
+from .sync import Sync
 
 _LOGGING = logging.getLogger(__name__)
 
 
 class BemfaMqtt:
     """Set up mqtt connections to bemfa service, subscribe topcs and publish messages."""
-
-    _topic_to_entity_id: dict[str, str] = {}
-    _remove_listener: Any = None
-    _ping_publish_timer: Any = None
-    _ping_receive_timer: Any = None
-    _ping_lost: int = 0
 
     def __init__(
         self, hass: HomeAssistant, uid: str, entity_ids: list[str] | None
@@ -50,32 +40,35 @@ class BemfaMqtt:
         # Init MQTT connection
         self._mqttc = mqtt.Client(uid, mqtt.MQTTv311)
 
-    def update_topics(self, topic_to_entity_id: dict[str, str]):
-        """Update topics we are watching."""
-        current_topics = set(self._topic_to_entity_id.keys())
-        new_topics = set(topic_to_entity_id.keys())
-        for topic in current_topics - new_topics:
-            self.remove_topic(topic)
+        self._topic_to_sync: dict[str, Sync] = {}
 
-        for topic in new_topics - current_topics:
-            self.add_topic(topic, topic_to_entity_id[topic])
+        self._remove_listener: Any = None
+        self._ping_publish_timer: Any = None
+        self._ping_receive_timer: Any = None
+        self._ping_lost: int = 0
 
-    def add_topic(self, topic: str, entity_id: str):
-        """Add an topic to our watching list"""
-        state = self._hass.states.get(entity_id)
-        if state is None:
-            return
-        self._topic_to_entity_id[topic] = entity_id
+    def create_sync(self, sync: Sync):
+        """Add an topic to our watching list."""
+        self._topic_to_sync[sync.topic] = sync
         self._mqttc.publish(
-            TOPIC_PUBLISH.format(topic=topic),
-            generate_msg(state.domain, state.state, state.attributes),
+            TOPIC_PUBLISH.format(topic=sync.topic),
+            sync.generate_msg(),
         )
-        self._mqttc.subscribe(topic, 2)
+        self._mqttc.subscribe(sync.topic, 2)
 
-    def remove_topic(self, topic: str):
-        """Remove an topic from our watching list"""
-        if topic in self._topic_to_entity_id:
-            self._topic_to_entity_id.pop(topic)
+    def modify_sync(self, sync: Sync):
+        """Modify a sync."""
+        if sync.topic in self._topic_to_sync:
+            self._topic_to_sync[sync.topic] = sync
+            self._mqttc.publish(
+                TOPIC_PUBLISH.format(topic=sync.topic),
+                sync.generate_msg(),
+            )
+
+    def destroy_sync(self, topic: str):
+        """Remove an topic from our watching list."""
+        if topic in self._topic_to_sync:
+            self._topic_to_sync.pop(topic)
         self._mqttc.unsubscribe(topic)
 
     def connect(self) -> None:
@@ -113,10 +106,10 @@ class BemfaMqtt:
         self._ping_publish_timer = asyncio.ensure_future(_publish_job())
 
     def _reconnect(self):
-        topic_to_entity_id = self._topic_to_entity_id.copy()
         self.disconnect()
         self.connect()
-        self.update_topics(topic_to_entity_id)
+        for sync in self._topic_to_sync.values():
+            self.create_sync(sync)
 
     def disconnect(self) -> None:
         """Disconnect from Bamfa service."""
@@ -135,29 +128,17 @@ class BemfaMqtt:
         self._mqttc.loop_stop()
         self._mqttc.disconnect()
 
-        # data clean
-        self._topic_to_entity_id.clear()
-
     def _state_listener(self, event):
         new_state = event.data.get("new_state")
         if new_state is None:
             return
         entity_id = new_state.entity_id
-        topic = self._get_topic_by_entity_id(entity_id)
-        if topic is None:
-            return
-        state = self._hass.states.get(entity_id)
-        self._mqttc.publish(
-            TOPIC_PUBLISH.format(topic=topic),
-            generate_msg(state.domain, state.state, state.attributes),
-        )
-
-    def _get_topic_by_entity_id(self, entity_id: str) -> str | None:
-        if entity_id not in self._topic_to_entity_id.values():
-            return None
-        return (list(self._topic_to_entity_id.keys()))[
-            list(self._topic_to_entity_id.values()).index(entity_id)
-        ]
+        for (topic, sync) in self._topic_to_sync.items():
+            if entity_id in sync.get_watched_entity_ids():
+                self._mqttc.publish(
+                    TOPIC_PUBLISH.format(topic=topic),
+                    sync.generate_msg(),
+                )
 
     def _mqtt_on_message(self, _mqtt_client, _userdata, message) -> None:
         if message.topic == TOPIC_PING:
@@ -166,24 +147,5 @@ class BemfaMqtt:
                 self._ping_lost = 0
             return
 
-        entity_id = self._topic_to_entity_id[message.topic]
-        state = self._hass.states.get(entity_id)
-        if state is None:
-            return
-        (msg_list, actions) = resolve_msg(
-            state.domain, message.payload.decode(), state.attributes
-        )
-
-        # generate msg from entity to compare to received msg
-        my_msg_list = generate_msg_list(state.domain, state.state, state.attributes)
-        for action in actions:
-            start_index = action[0]
-            end_index = min(action[1], len(msg_list), len(my_msg_list))
-            if msg_list[start_index:end_index] != my_msg_list[start_index:end_index]:
-                data = {ATTR_ENTITY_ID: entity_id}
-                if action[4] is not None:
-                    data.update(action[4])
-                self._hass.services.call(
-                    domain=action[2], service=action[3], service_data=data
-                )
-                break  # call only one service on each msg received
+        if message.topic in self._topic_to_sync:
+            self._topic_to_sync[message.topic].resolve_msg(message.payload.decode())

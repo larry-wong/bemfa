@@ -20,37 +20,83 @@
             "init": {
                 "title": "Operations",
                 "menu_options": {
-                    "add_sync": "Sync an entity",
-                    "modify_sync": "Modify a sync",
-                    "remove_sync": "Remove syncs"
+                    "create_sync": "Create sync",
+                    "modify_sync": "Modify sync",
+                    "destroy_sync": "Destroy sync(s)"
                 }
             },
-            "add_sync": {
-                "title": "Sync an entity",
-                "description": "Sync a hass entity to bemfa service.",
+            "create_sync": {
+                "title": "Create sync",
+                "description": "Create a hass-to-bemfa sync.",
                 "data": {
                     "select": "Select an entity"
                 }
             },
             "modify_sync": {
                 "title": "Modify a sync",
-                "description": "Modify a hass-to-bemfa sync",
+                "description": "Modify a hass-to-bemfa sync.",
                 "data": {
                     "select": "Select a sync"
                 }
             },
-            "remove_sync": {
-                "title": "Remove sync(s)",
-                "description": "Remove hass-to-bemfa sync(s)",
+            "sync_config_sensor": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa sensor sync.",
                 "data": {
-                    "select": "Select sync(s)"
+                    "name": "name",
+                    "temperature": "Select a temperature sensor",
+                    "humidity": "Select a humidity sensor",
+                    "illuminance": "Select an illuminance sensor",
+                    "pm25": "Select a pm25 sensor"
                 }
             },
-            "set_sync_name": {
-                "title": "Set name",
-                "description": "Set name of this entity after sync to bemfa service.",
+            "sync_config_binary_sensor": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa binary sensor sync.",
                 "data": {
                     "name": "name"
+                }
+            },
+            "sync_config_climate": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa climate sync.",
+                "data": {
+                    "name": "name"
+                }
+            },
+            "sync_config_cover": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa cover sync.",
+                "data": {
+                    "name": "name"
+                }
+            },
+            "sync_config_fan": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa fan sync.",
+                "data": {
+                    "name": "name"
+                }
+            },
+            "sync_config_light": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa light sync.",
+                "data": {
+                    "name": "name"
+                }
+            },
+            "sync_config_switch": {
+                "title": "Configuation",
+                "description": "Configuate a hass-to-bemfa switch sync.",
+                "data": {
+                    "name": "name"
+                }
+            },
+            "destroy_sync": {
+                "title": "Destroy sync(s)",
+                "description": "Destroy hass-to-bemfa sync(s).",
+                "data": {
+                    "select": "Select sync(s)"
                 }
             }
         }
