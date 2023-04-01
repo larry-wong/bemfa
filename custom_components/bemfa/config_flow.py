@@ -251,7 +251,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         service = self._get_service()
         if user_input is not None:
             for topic in user_input[OPTIONS_SELECT]:
-                await service.remove_topic(topic)
+                await service.async_destroy_sync(topic)
                 if topic in self._config:
                     self._config.pop(topic)
             return self.async_create_entry(
