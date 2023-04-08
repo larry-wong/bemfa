@@ -94,8 +94,8 @@ class BemfaMqtt:
             await asyncio.sleep(INTERVAL_PING_RECEIVE)
             self._ping_lost += 1
             if self._ping_lost == MAX_PING_LOST:
-                self._reconnect()
                 self._ping_lost = 0
+                self._reconnect()
 
         async def _publish_job():
             await asyncio.sleep(INTERVAL_PING_SEND)
