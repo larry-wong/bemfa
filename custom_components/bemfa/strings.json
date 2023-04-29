@@ -27,23 +27,17 @@
             },
             "create_sync": {
                 "title": "Create sync",
-                "description": "Create a hass-to-bemfa sync.",
-                "data": {
-                    "select": "Select an entity"
-                }
+                "description": "Select an entity to create sync."
             },
             "modify_sync": {
                 "title": "Modify a sync",
-                "description": "Modify a hass-to-bemfa sync.",
-                "data": {
-                    "select": "Select a sync"
-                }
+                "description": "Select a sync to edit."
             },
             "sync_config_sensor": {
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa sensor sync.",
                 "data": {
-                    "name": "name",
+                    "name": "Name",
                     "temperature": "Select a temperature sensor",
                     "humidity": "Select a humidity sensor",
                     "illuminance": "Select an illuminance sensor",
@@ -54,50 +48,61 @@
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa binary sensor sync.",
                 "data": {
-                    "name": "name"
+                    "name": "Name"
                 }
             },
             "sync_config_climate": {
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa climate sync.",
                 "data": {
-                    "name": "name"
+                    "name": "Name",
+                    "fan_speed_0_value": "Fan speed auto",
+                    "fan_speed_1_value": "Fan speed 1",
+                    "fan_speed_2_value": "Fan speed 2",
+                    "fan_speed_3_value": "Fan speed 3",
+                    "fan_speed_4_value": "Fan speed 4",
+                    "fan_speed_5_value": "Fan speed 5",
+                    "swing_off_value": "Swing off",
+                    "swing_horizontal_value": "Swing horizontal",
+                    "swing_vertical_value": "Swing vertical",
+                    "swing_both_value": "Swing both"
                 }
             },
             "sync_config_cover": {
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa cover sync.",
                 "data": {
-                    "name": "name"
+                    "name": "Name"
                 }
             },
             "sync_config_fan": {
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa fan sync.",
                 "data": {
-                    "name": "name"
+                    "name": "Name"
                 }
             },
             "sync_config_light": {
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa light sync.",
                 "data": {
-                    "name": "name"
+                    "name": "Name"
                 }
             },
             "sync_config_switch": {
                 "title": "Configuation",
                 "description": "Configuate a hass-to-bemfa switch sync.",
                 "data": {
-                    "name": "name"
+                    "name": "Name"
                 }
             },
             "destroy_sync": {
                 "title": "Destroy sync(s)",
-                "description": "Destroy hass-to-bemfa sync(s).",
-                "data": {
-                    "select": "Select sync(s)"
-                }
+                "description": "Select sync(s) to destroy."
+            },
+            "empty": {
+                "title": "Empty",
+                "description": "No syncs found."
             }
         }
     }

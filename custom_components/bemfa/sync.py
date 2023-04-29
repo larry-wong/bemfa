@@ -174,7 +174,9 @@ class ControllableSync(Sync):
             msg_list = [MSG_OFF]  # discard any data followed by "off"
 
         # generate msg from entity to compare to received msg
-        state_msg_list = self._generate_msg_parts()
+        state_msg_list = MSG_SEPARATOR.join(self._generate_msg_parts()).split(
+            MSG_SEPARATOR
+        )
 
         for resolver in self._msg_resolvers():
             start_index = resolver[0]

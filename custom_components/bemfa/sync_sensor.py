@@ -8,6 +8,12 @@ from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDevic
 from homeassistant.const import ATTR_DEVICE_CLASS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 from homeassistant.helpers.template import area_entities
 from .utils import has_key
 from .const import (
@@ -66,7 +72,7 @@ class Sensor(Sync):
                 (co2_sensors, SensorDeviceClass.CO2),
             ):
                 if state.attributes[ATTR_DEVICE_CLASS] == _c:
-                    _d[state.entity_id] = "{name}({id})".format(
+                    _d[state.entity_id] = "{name} ({id})".format(
                         name=state.name, id=state.entity_id
                     )
                     break
@@ -82,11 +88,24 @@ class Sensor(Sync):
                 schema[
                     vol.Optional(
                         _t,
-                        default=self._config[_t]
-                        if _t in self._config and self._config[_t] in _d
-                        else list(_d.keys())[0],
+                        description={
+                            "suggested_value": self._config[_t]
+                            if _t in self._config and self._config[_t] in _d
+                            else list(_d.keys())[0]
+                        },
                     )
-                ] = vol.In(_d)
+                ] = SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(
+                                value=value,
+                                label=label,
+                            )
+                            for (value, label) in _d.items()
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                )
         return schema
 
     def get_watched_entity_ids(self) -> list[str]:

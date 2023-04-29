@@ -12,6 +12,6 @@
   "issue_tracker": "https://github.com/larry-wong/bemfa/issues",
   "requirements": ["paho-mqtt==1.6.1"],
   "ssdp": [],
-  "version": "1.3.2",
+  "version": "1.4.0",
   "zeroconf": []
 }

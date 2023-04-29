@@ -10,9 +10,14 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
-from .sync import SYNC_TYPES, Sync
+from .sync import Sync
 from .const import (
     CONF_UID,
     DOMAIN,
@@ -125,17 +130,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if sync.topic not in all_topics:
                 self._sync_dict[sync.entity_id] = sync
 
+        if not bool(self._sync_dict):
+            return self.async_show_form(step_id="empty", last_step=False)
+
         self._is_create = True
 
         return self.async_show_form(
             step_id="create_sync",
             data_schema=vol.Schema(
                 {
-                    vol.Required(OPTIONS_SELECT): vol.In(
-                        {
-                            sync.entity_id: sync.generate_option_label()
-                            for sync in self._sync_dict.values()
-                        }
+                    vol.Required(OPTIONS_SELECT): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=sync.entity_id,
+                                    label=sync.generate_option_label(),
+                                )
+                                for sync in self._sync_dict.values()
+                            ],
+                            mode=SelectSelectorMode.LIST,
+                        )
                     )
                 }
             ),
@@ -159,17 +173,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 sync.name = all_topics[sync.topic]
                 self._sync_dict[sync.entity_id] = sync
 
+        if not bool(self._sync_dict):
+            return self.async_show_form(step_id="empty", last_step=False)
+
         self._is_create = False
 
         return self.async_show_form(
             step_id="modify_sync",
             data_schema=vol.Schema(
                 {
-                    vol.Required(OPTIONS_SELECT): vol.In(
-                        {
-                            sync.entity_id: sync.generate_option_label()
-                            for sync in self._sync_dict.values()
-                        }
+                    vol.Required(OPTIONS_SELECT): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=sync.entity_id,
+                                    label=sync.generate_option_label(),
+                                )
+                                for sync in self._sync_dict.values()
+                            ],
+                            mode=SelectSelectorMode.LIST,
+                        )
                     )
                 }
             ),
@@ -270,13 +293,34 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         for (topic, name) in all_topics.items():
             topic_map[topic] = "[?] {name}".format(name=name)
 
+        if not bool(topic_map):
+            return self.async_show_form(step_id="empty", last_step=False)
         return self.async_show_form(
             step_id="destroy_sync",
             data_schema=vol.Schema(
-                {vol.Required(OPTIONS_SELECT): cv.multi_select(topic_map)}
+                {
+                    vol.Required(OPTIONS_SELECT): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=value,
+                                    label=label,
+                                )
+                                for (value, label) in topic_map.items()
+                            ],
+                            mode=SelectSelectorMode.LIST,
+                            multiple=True,
+                        )
+                    )
+                }
             ),
-            last_step=False,
         )
+
+    async def async_step_empty(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """No syncs found."""
+        return await self.async_step_init(user_input)
 
     def _get_service(self) -> BemfaService:
         return self.hass.data[DOMAIN].get(self._entry_id)["service"]

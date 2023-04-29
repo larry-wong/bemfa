@@ -11,12 +11,26 @@ CONF_UID: Final = "uid"
 
 OPTIONS_CONFIG: Final = "config"
 OPTIONS_SELECT: Final = "select"
+
 OPTIONS_NAME: Final = "name"
+
 OPTIONS_TEMPERATURE: Final = "temperature"
 OPTIONS_HUMIDITY: Final = "humidity"
 OPTIONS_ILLUMINANCE: Final = "illuminance"
 OPTIONS_PM25: Final = "pm25"
 OPTIONS_CO2: Final = "co2"
+
+OPTIONS_FAN_SPEED_0_VALUE: Final = "fan_speed_0_value"
+OPTIONS_FAN_SPEED_1_VALUE: Final = "fan_speed_1_value"
+OPTIONS_FAN_SPEED_2_VALUE: Final = "fan_speed_2_value"
+OPTIONS_FAN_SPEED_3_VALUE: Final = "fan_speed_3_value"
+OPTIONS_FAN_SPEED_4_VALUE: Final = "fan_speed_4_value"
+OPTIONS_FAN_SPEED_5_VALUE: Final = "fan_speed_5_value"
+
+OPTIONS_SWING_OFF_VALUE: Final = "swing_off_value"
+OPTIONS_SWING_HORIZONTAL_VALUE: Final = "swing_horizontal_value"
+OPTIONS_SWING_VERTICAL_VALUE: Final = "swing_vertical_value"
+OPTIONS_SWING_BOTH_VALUE: Final = "swing_both_value"
 
 # #### MQTT ####
 class TopicSuffix(StrEnum):

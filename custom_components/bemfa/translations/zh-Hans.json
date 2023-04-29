@@ -27,17 +27,11 @@
             },
             "create_sync": {
                 "title": "\u540c\u6b65\u5b9e\u4f53",
-                "description": "\u540c\u6b65\u4e00\u4e2a\u5b9e\u4f53\u81f3\u5df4\u6cd5\u4e91\u3002",
-                "data": {
-                    "select": "\u9009\u62e9\u5b9e\u4f53"
-                }
+                "description": "\u9009\u62e9\u4e00\u4e2a\u5b9e\u4f53\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\u3002"
             },
             "modify_sync": {
                 "title": "\u7f16\u8f91\u540c\u6b65",
-                "description": "\u7f16\u8f91\u4e00\u4e2a\u5230\u5df4\u6cd5\u4e91\u7684\u540c\u6b65\u3002",
-                "data": {
-                    "select": "\u9009\u62e9\u540c\u6b65"
-                }
+                "description": "\u9009\u62e9\u4e00\u4e2a\u540c\u6b65\u8fdb\u884c\u7f16\u8f91\u3002"
             },
             "sync_config_sensor": {
                 "title": "\u914d\u7f6e",
@@ -59,9 +53,19 @@
             },
             "sync_config_climate": {
                 "title": "\u914d\u7f6e",
-                "description": "\u5c06\u7a7a\u8c03\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed/\u8bbe\u5b9a\u6a21\u5f0f/\u8bbe\u5b9a\u6e29\u5ea6\u3002",
+                "description": "\u5c06\u7a7a\u8c03\u8bbe\u5907\u540c\u6b65\u81f3\u5df4\u6cd5\u4e91\uff0c\u53ef\u901a\u8fc7\u8bed\u97f3\u52a9\u624b\u6253\u5f00/\u5173\u95ed/\u8bbe\u5b9a\u6a21\u5f0f/\u8bbe\u5b9a\u6e29\u5ea6/\u8c03\u8282\u98ce\u901f/\u6446\u53f6\u3002\n\u5f53\u524d\u5df4\u6cd5\u4e91\u4ec5\u652f\u6301\u901a\u8fc7\u5c0f\u7231\u540c\u5b66\u8c03\u8282\u98ce\u901f\u548c\u6446\u53f6\u3002\n\u53ef\u5206\u522b\u8bbe\u7f6e\u516d\u4e2a\u98ce\u901f\u6863\u4ee5\u53ca\u6c34\u5e73/\u7ad6\u76f4\u6446\u53f6\u5bf9\u5e94\u7684 HASS \u4e2d\u7684\u503c\u3002",
                 "data": {
-                    "name": "\u540d\u79f0"
+                    "name": "\u540d\u79f0",
+                    "fan_speed_0_value": "\u81ea\u52a8\u98ce\u901f",
+                    "fan_speed_1_value": "\u4e00\u6863\u98ce\u901f",
+                    "fan_speed_2_value": "\u4e8c\u6863\u98ce\u901f",
+                    "fan_speed_3_value": "\u4e09\u6863\u98ce\u901f",
+                    "fan_speed_4_value": "\u56db\u6863\u98ce\u901f",
+                    "fan_speed_5_value": "\u4e94\u6863\u98ce\u901f",
+                    "swing_off_value": "\u56fa\u5b9a\u6446\u53f6",
+                    "swing_horizontal_value": "\u6c34\u5e73\u6446\u52a8",
+                    "swing_vertical_value": "\u7ad6\u76f4\u6446\u52a8",
+                    "swing_both_value": "\u6c34\u5e73\u4e14\u7ad6\u76f4\u6446\u52a8"
                 }
             },
             "sync_config_cover": {
@@ -94,10 +98,11 @@
             },
             "destroy_sync": {
                 "title": "\u5220\u9664\u540c\u6b65",
-                "description": "\u5220\u9664\u5230\u5df4\u6cd5\u4e91\u7684\u540c\u6b65\uff08\u53ef\u591a\u9009\uff09\u3002",
-                "data": {
-                    "select": "\u9009\u62e9\u540c\u6b65"
-                }
+                "description": "\u9009\u62e9\u9700\u8981\u5220\u9664\u7684\u540c\u6b65\u3002"
+            },
+            "empty": {
+                "title": "\u65e0\u6570\u636e",
+                "description": "\u6ca1\u6709\u53ef\u64cd\u4f5c\u7684\u540c\u6b65\u3002"
             }
         }
     }
