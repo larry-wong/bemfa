@@ -54,7 +54,7 @@ class BemfaMqtt:
             TOPIC_PUBLISH.format(topic=sync.topic),
             sync.generate_msg(),
         )
-        self._mqttc.subscribe(sync.topic, 2)
+        self._mqttc.subscribe(sync.topic, 1)
 
     def modify_sync(self, sync: Sync):
         """Modify a sync."""
@@ -87,7 +87,7 @@ class BemfaMqtt:
         )
 
         # Listen for heartbeat packages
-        self._mqttc.subscribe(TOPIC_PING, 2)
+        self._mqttc.subscribe(TOPIC_PING, 1)
 
     def _ping(self):
         async def _receive_job():
