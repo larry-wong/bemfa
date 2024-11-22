@@ -60,8 +60,8 @@ MSG_PAUSE: Final = "pause"  # for covers
 MSG_SPEED_COUNT: Final = 4  # for fans, 4 speed supported at most
 
 # #### Service Api ####
-HTTP_BASE_URL: Final = f"https://api.{MQTT_HOST}/api/"
-FETCH_TOPICS_URL: Final = "https://api.bemfa.com/api/device/v1/topic/?uid={uid}&type=2"
-CREATE_TOPIC_URL: Final = f"{HTTP_BASE_URL}user/addtopic/"
-RENAME_TOPIC_URL: Final = f"{HTTP_BASE_URL}device/v1/topic/name/"
-DEL_TOPIC_URL: Final = f"{HTTP_BASE_URL}user/deltopic/"
+HTTP_BASE_URL: Final = f"https://pro.{MQTT_HOST}/v1"
+FETCH_TOPICS_URL: Final = "https://apis.bemfa.com/va/alltopic?uid={uid}&type=1"
+CREATE_TOPIC_URL: Final = f"{HTTP_BASE_URL}/addtopic"
+RENAME_TOPIC_URL: Final = f"https://apis.bemfa.com/va/setName"
+DEL_TOPIC_URL: Final = f"{HTTP_BASE_URL}/deltopic"
