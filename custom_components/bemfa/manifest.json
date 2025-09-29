@@ -10,7 +10,7 @@
   "homekit": {},
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/larry-wong/bemfa/issues",
-  "requirements": ["paho-mqtt==1.6.1"],
+  "requirements": ["paho-mqtt>=2.0.0"],
   "ssdp": [],
   "version": "1.4.0",
   "zeroconf": []
