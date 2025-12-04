@@ -14,7 +14,6 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
-from homeassistant.helpers.template import area_entities
 from .utils import has_key
 from .const import (
     OPTIONS_CO2,
