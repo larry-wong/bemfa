@@ -14,7 +14,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
-from homeassistant.helpers.template import area_entities
+from homeassistant.helpers import entity_registry as er
 from .utils import has_key
 from .const import (
     OPTIONS_CO2,
@@ -57,7 +57,11 @@ class Sensor(Sync):
         co2_sensors: dict[str, str] = {}
 
         # filter entities in our area
-        a_entities = area_entities(self._hass, self._entity_id.split(".")[1])
+        area_id = self._entity_id.split(".")[1]
+        entity_reg = er.async_get(self._hass)
+        a_entities = {
+            entry.entity_id for entry in entity_reg.async_entries_for_area(area_id)
+        }
 
         for state in self._hass.states.async_all(SENSOR_DOMAIN):
             if state.entity_id not in a_entities:

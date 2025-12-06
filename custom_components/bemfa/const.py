@@ -2,7 +2,7 @@
 
 from typing import Final
 
-from homeassistant.backports.enum import StrEnum
+import enum
 
 DOMAIN: Final = "bemfa"
 
@@ -33,7 +33,7 @@ OPTIONS_SWING_VERTICAL_VALUE: Final = "swing_vertical_value"
 OPTIONS_SWING_BOTH_VALUE: Final = "swing_both_value"
 
 # #### MQTT ####
-class TopicSuffix(StrEnum):
+class TopicSuffix(enum.StrEnum):
     """Suffix for bemfa MQTT topic"""
 
     LIGHT = "002"

@@ -4,11 +4,11 @@ from __future__ import annotations
 from collections.abc import Mapping, Callable
 from typing import Any
 from homeassistant.components.automation import DOMAIN as AUTOMATION_DOMAIN
-from homeassistant.components.camera import DOMAIN as CAMERA_DOMAIN, STATE_IDLE
+from homeassistant.components.camera import DOMAIN as CAMERA_DOMAIN, CameraState
 from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
 from homeassistant.components.humidifier import DOMAIN as HUMIDIFIER_DOMAIN
 from homeassistant.components.input_boolean import DOMAIN as INPUT_BOOLEAN_DOMAIN
-from homeassistant.components.lock import DOMAIN as LOCK_DOMAIN
+from homeassistant.components.lock import DOMAIN as LOCK_DOMAIN, LockState
 from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER_DOMAIN
 from homeassistant.components.remote import DOMAIN as REMOTE_DOMAIN
 from homeassistant.components.scene import DOMAIN as SCENE_DOMAIN
@@ -20,7 +20,7 @@ from homeassistant.components.vacuum import (
     SERVICE_RETURN_TO_BASE,
     SERVICE_START,
     SERVICE_STOP,
-    STATE_CLEANING,
+    VacuumActivity,
     VacuumEntityFeature,
 )
 from homeassistant.const import (
@@ -29,7 +29,6 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     SERVICE_UNLOCK,
     SERVICE_LOCK,
-    STATE_LOCKED,
     STATE_ON,
     STATE_PLAYING,
 )
@@ -120,7 +119,7 @@ class Camera(Switch):
     def _msg_generator(
         self,
     ) -> Callable[[str, ReadOnlyDict[Mapping[str, Any]]], str | int]:
-        return lambda state, attributes: MSG_OFF if state == STATE_IDLE else MSG_ON
+        return lambda state, attributes: MSG_OFF if state == CameraState.IDLE else MSG_ON
 
 
 @SYNC_TYPES.register("media_player")
@@ -148,7 +147,7 @@ class Lock(Switch):
     def _msg_generator(
         self,
     ) -> Callable[[str, ReadOnlyDict[Mapping[str, Any]]], str | int]:
-        return lambda state, attributes: MSG_OFF if state == STATE_LOCKED else MSG_ON
+        return lambda state, attributes: MSG_OFF if state == LockState.LOCKED else MSG_ON
 
     def _service_names(self) -> tuple[str, str]:
         return (SERVICE_UNLOCK, SERVICE_LOCK)
@@ -193,7 +192,7 @@ class Vacuum(Switch):
     ) -> Callable[[str, ReadOnlyDict[Mapping[str, Any]]], str | int]:
         return (
             lambda state, attributes: MSG_ON
-            if state in [STATE_ON, STATE_CLEANING]
+            if state in [STATE_ON, VacuumActivity.CLEANING]
             else MSG_OFF
         )
 
