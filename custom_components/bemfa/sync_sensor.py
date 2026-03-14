@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 import voluptuous as vol
+from collections.abc import Iterable
 
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDeviceClass
 from homeassistant.const import ATTR_DEVICE_CLASS
@@ -14,7 +15,8 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
-from homeassistant.helpers.template import area_entities
+from homeassistant.helpers import entity_registry
+from homeassistant.helpers import device_registry
 from .utils import has_key
 from .const import (
     OPTIONS_CO2,
@@ -27,6 +29,29 @@ from .const import (
 from .sync import SYNC_TYPES, Sync
 
 _LOGGING = logging.getLogger(__name__)
+
+
+def area_entities(hass: HomeAssistant, area_id: str) -> Iterable[str]:
+    """Return entities for a given area ID or name."""
+    if area_id is None:
+        return []
+    ent_reg = entity_registry.async_get(hass)
+    entity_ids = [
+        entry.entity_id
+        for entry in entity_registry.async_entries_for_area(ent_reg, area_id)
+    ]
+    dev_reg = device_registry.async_get(hass)
+    # We also need to add entities tied to a device in the area that don't themselves
+    # have an area specified since they inherit the area from the device.
+    entity_ids.extend(
+        [
+            entity.entity_id
+            for device in device_registry.async_entries_for_area(dev_reg, area_id)
+            for entity in entity_registry.async_entries_for_device(ent_reg, device.id)
+            if entity.area_id is None
+        ]
+    )
+    return entity_ids
 
 
 @SYNC_TYPES.register("sensor")
