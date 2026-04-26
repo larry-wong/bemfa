@@ -12,20 +12,22 @@ from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
     ATTR_SWING_MODE,
     ATTR_SWING_MODES,
-    FAN_AUTO,
-    FAN_LOW,
-    FAN_MEDIUM,
-    FAN_HIGH,
     SERVICE_SET_FAN_MODE,
     SERVICE_SET_HVAC_MODE,
     SERVICE_SET_TEMPERATURE,
     SERVICE_SET_SWING_MODE,
+    HVACMode,
+    DOMAIN,
+)
+from homeassistant.components.climate.const import (
+    FAN_AUTO,
+    FAN_LOW,
+    FAN_MEDIUM,
+    FAN_HIGH,
     SWING_OFF,
     SWING_HORIZONTAL,
     SWING_VERTICAL,
     SWING_BOTH,
-    HVACMode,
-    DOMAIN,
 )
 
 from homeassistant.const import (

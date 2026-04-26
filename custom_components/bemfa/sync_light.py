@@ -6,14 +6,16 @@ from typing import Any
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_BRIGHTNESS_PCT,
-    ATTR_COLOR_TEMP,
-    ATTR_MAX_MIREDS,
-    ATTR_MIN_MIREDS,
     ATTR_RGB_COLOR,
     ATTR_SUPPORTED_COLOR_MODES,
     DOMAIN,
     ColorMode,
+    ATTR_COLOR_TEMP_KELVIN as ATTR_COLOR_TEMP,
+    ATTR_MAX_COLOR_TEMP_KELVIN as ATTR_MAX_MIREDS,
+    ATTR_MIN_COLOR_TEMP_KELVIN as ATTR_MIN_MIREDS,
 )
+_IS_KELVIN = True
+
 from homeassistant.const import SERVICE_TURN_OFF, SERVICE_TURN_ON, STATE_ON
 from homeassistant.util.read_only_dict import ReadOnlyDict
 from .const import MSG_OFF, MSG_ON, TopicSuffix
@@ -45,7 +47,7 @@ class Light(ControllableSync):
             lambda state, attributes: round(attributes[ATTR_BRIGHTNESS] / 2.55)
             if has_key(attributes, ATTR_BRIGHTNESS)
             else "",
-            lambda state, attributes: 1000000 // attributes[ATTR_COLOR_TEMP]
+            lambda state, attributes: attributes[ATTR_COLOR_TEMP] if _IS_KELVIN else 1000000 // attributes[ATTR_COLOR_TEMP]
             if has_key(attributes, ATTR_COLOR_TEMP)
             else attributes[ATTR_RGB_COLOR][0] * 256 * 256
             + attributes[ATTR_RGB_COLOR][1] * 256
@@ -76,7 +78,7 @@ class Light(ControllableSync):
                     {
                         ATTR_BRIGHTNESS_PCT: msg[1],
                         ATTR_COLOR_TEMP: min(
-                            max(1000000 // msg[2], attributes[ATTR_MIN_MIREDS]),
+                            max(msg[2] if _IS_KELVIN else 1000000 // msg[2], attributes[ATTR_MIN_MIREDS]),
                             attributes[ATTR_MAX_MIREDS],
                         ),
                     }

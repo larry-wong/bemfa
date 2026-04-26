@@ -70,7 +70,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data=user_input,
         )
 
-    @staticmethod
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,

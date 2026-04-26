@@ -7,14 +7,13 @@ import voluptuous as vol
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDeviceClass
 from homeassistant.const import ATTR_DEVICE_CLASS
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import area_registry
+from homeassistant.helpers import area_registry, entity_registry, device_registry
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
 )
-from homeassistant.helpers.template import area_entities
 from .utils import has_key
 from .const import (
     OPTIONS_CO2,
@@ -57,7 +56,18 @@ class Sensor(Sync):
         co2_sensors: dict[str, str] = {}
 
         # filter entities in our area
-        a_entities = area_entities(self._hass, self._entity_id.split(".")[1])
+        area_id = self._entity_id.split(".")[1]
+        ent_reg = entity_registry.async_get(self._hass)
+        dev_reg = device_registry.async_get(self._hass)
+        
+        a_entities = []
+        for entity in ent_reg.entities.values():
+            if entity.area_id == area_id:
+                a_entities.append(entity.entity_id)
+            elif entity.area_id is None and entity.device_id:
+                device = dev_reg.async_get(entity.device_id)
+                if device and device.area_id == area_id:
+                    a_entities.append(entity.entity_id)
 
         for state in self._hass.states.async_all(SENSOR_DOMAIN):
             if state.entity_id not in a_entities:
