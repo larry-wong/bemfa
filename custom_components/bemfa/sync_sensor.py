@@ -8,13 +8,14 @@ from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, SensorDevic
 from homeassistant.const import ATTR_DEVICE_CLASS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry
+from homeassistant.helpers import entity_registry
+from homeassistant.helpers import device_registry
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
 )
-from homeassistant.helpers.template import area_entities
 from .utils import has_key
 from .const import (
     OPTIONS_CO2,
@@ -27,6 +28,31 @@ from .const import (
 from .sync import SYNC_TYPES, Sync
 
 _LOGGING = logging.getLogger(__name__)
+
+
+def area_entities(hass: HomeAssistant, area_name_or_id: str) -> set[str]:
+    ar_reg = area_registry.async_get(hass)
+    area = ar_reg.async_get_area(area_name_or_id)
+    if area is None:
+        for a in ar_reg.async_list_areas():
+            if a.name == area_name_or_id:
+                area = a
+                break
+    if area is None:
+        return set()
+    area_id = area.id
+    ent_reg = entity_registry.async_get(hass)
+    dev_reg = device_registry.async_get(hass)
+    result: set[str] = set()
+    for entry in list(ent_reg.entities.values()):
+        if entry.area_id == area_id:
+            result.add(entry.entity_id)
+            continue
+        if entry.device_id is not None:
+            device = dev_reg.async_get(entry.device_id)
+            if device is not None and device.area_id == area_id:
+                result.add(entry.entity_id)
+    return result
 
 
 @SYNC_TYPES.register("sensor")
