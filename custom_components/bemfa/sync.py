@@ -180,7 +180,9 @@ class ControllableSync(Sync):
 
         for resolver in self._msg_resolvers():
             start_index = resolver[0]
-            end_index = min(resolver[1], len(msg_list), len(state_msg_list))
+            # An off-state reply contains only "off". Its length must not
+            # truncate arguments in an incoming command such as "on#4".
+            end_index = min(resolver[1], len(msg_list))
             if msg_list[start_index:end_index] != state_msg_list[start_index:end_index]:
                 (domain, service, data) = resolver[2](
                     [
